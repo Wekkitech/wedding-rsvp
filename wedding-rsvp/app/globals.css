@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 25 40% 15%;
+
+    --card: 33 50% 98%;
+    --card-foreground: 25 40% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 25 40% 15%;
+
+    --primary: 14 86% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 33 30% 92%;
+    --secondary-foreground: 25 40% 15%;
+
+    --muted: 33 20% 95%;
+    --muted-foreground: 25 20% 45%;
+
+    --accent: 7 65% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 33 20% 88%;
+    --input: 33 20% 88%;
+    --ring: 14 86% 52%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-gradient-to-br from-ivory-50 via-white to-bronze-50 text-foreground min-h-screen;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .wedding-card {
+    @apply bg-white/80 backdrop-blur-sm rounded-lg shadow-lg border border-bronze-100 p-6;
+  }
+  
+  .wedding-button {
+    @apply bg-mahogany-600 hover:bg-mahogany-700 text-white font-medium px-6 py-3 rounded-md transition-colors duration-200;
+  }
+  
+  .section-title {
+    @apply text-3xl md:text-4xl font-serif text-mahogany-800 mb-4;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-mahogany-700 via-orange-600 to-bronze-600 bg-clip-text text-transparent;
+  }
+}
