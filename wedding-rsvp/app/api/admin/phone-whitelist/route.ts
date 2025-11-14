@@ -1,6 +1,7 @@
 // app/api/admin/phone-whitelist/route.ts
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+export const dynamic = 'force-dynamic';
 
 // GET - List all whitelisted phones
 export async function GET(request: Request) {

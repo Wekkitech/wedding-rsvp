@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isAdmin } from '@/lib/db';
+export const dynamic = 'force-dynamic';
 
 // GET - Fetch all hotels
 export async function GET(request: NextRequest) {
