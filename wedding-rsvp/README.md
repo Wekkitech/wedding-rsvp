@@ -373,3 +373,4 @@ Just add your Supabase credentials, deploy, and you're ready to collect RSVPs!
 **Made with ❤️ for Brill & Damaris's special day!**
 
 *Last updated: November 2024*
+# Webhook test Fri, Nov 14, 2025  3:22:58 PM
