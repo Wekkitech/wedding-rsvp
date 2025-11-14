@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createMagicLink } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
+export const dynamic = 'force-dynamic';
+
 
 export async function POST(request: Request) {
   try {

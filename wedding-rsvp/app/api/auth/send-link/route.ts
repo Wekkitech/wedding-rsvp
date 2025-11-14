@@ -2,6 +2,8 @@ import { createMagicLink, getMagicLinkUrl } from '@/lib/auth';
 import { createOrUpdateGuest, getGuestByEmail } from '@/lib/db';
 import { getMagicLinkEmailTemplate } from '@/lib/email-templates';
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
+
 
 export async function POST(request: NextRequest) {
   try {

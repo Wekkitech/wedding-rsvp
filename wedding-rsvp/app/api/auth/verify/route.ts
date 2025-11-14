@@ -1,6 +1,8 @@
 import { verifyMagicLink } from '@/lib/auth';
 import { getGuestByEmail } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
+
 
 export async function POST(request: NextRequest) {
   try {
