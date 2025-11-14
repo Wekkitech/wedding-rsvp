@@ -1,0 +1,36 @@
+
+> brill-damaris-wedding@1.0.0 build
+> next build
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\package-lock.json
+
+   ▲ Next.js 16.0.2 (Turbopack)
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 8.0s
+   Running TypeScript ...
+   Collecting page data ...
+   Generating static pages (0/29) ...
+   Generating static pages (7/29) 
+   Generating static pages (14/29) 
+   Generating static pages (21/29) 
+ ⨯ useSearchParams() should be wrapped in a suspense boundary at page "/rsvp". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at S (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\.next\server\chunks\ssr\a9a9d_next_588829aa._.js:2:2111)
+    at p (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\.next\server\chunks\ssr\a9a9d_next_588829aa._.js:4:4843)
+    at o (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\.next\server\chunks\ssr\wedding-rsvp_776b23fd._.js:1:6348)
+    at ir (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84433)
+    at ia (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86252)
+    at il (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:107981)
+    at is (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:105399)
+    at ii (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84785)
+    at ia (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86301)
+    at ia (C:\Users\HP\OneDrive\Documentos\Weddding\wedding-rsvp\wedding-rsvp\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:104739)
+Error occurred prerendering page "/rsvp". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /rsvp/page: /rsvp, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null

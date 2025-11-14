@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Heart, Loader2, CheckCircle } from 'lucide-react';
 
-export default function RSVPPage() {
+function RSVPForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -34,9 +34,9 @@ export default function RSVPPage() {
 
   useEffect(() => {
     // Check if user came from phone verification
-    const phoneFromStorage = localStorage.getItem('verifiedPhone');
-    const nameFromStorage = localStorage.getItem('guestName');
-    const preAttending = localStorage.getItem('preAttending');
+    const phoneFromStorage = typeof window !== 'undefined' ? localStorage.getItem('verifiedPhone') : null;
+    const nameFromStorage = typeof window !== 'undefined' ? localStorage.getItem('guestName') : null;
+    const preAttending = typeof window !== 'undefined' ? localStorage.getItem('preAttending') : null;
     const isDeclined = searchParams.get('declined') === 'true';
 
     if (!phoneFromStorage) {
@@ -98,7 +98,9 @@ export default function RSVPPage() {
         
         // Keep verification data so they can log back in
         // Only clear the preAttending flag
-        localStorage.removeItem('preAttending');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('preAttending');
+        }
         
         // Redirect to success page
         router.push('/success');
@@ -188,7 +190,7 @@ export default function RSVPPage() {
           <Card className="border-sage-200 bg-sage-50/30">
             <CardContent className="p-4">
               <p className="text-sm text-sage-800">
-                <strong>📝 Attending as a couple?</strong> Each person should complete their own verification and RSVP separately.
+                <strong>👥 Attending as a couple?</strong> Each person should complete their own verification and RSVP separately.
               </p>
             </CardContent>
           </Card>
@@ -374,5 +376,17 @@ export default function RSVPPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RSVPPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-12 min-h-[80vh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-sage-600" />
+      </div>
+    }>
+      <RSVPForm />
+    </Suspense>
   );
 }
