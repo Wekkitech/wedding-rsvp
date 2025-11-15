@@ -2,14 +2,17 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, MapPin, Heart, Gift, Users, Shirt, Image as ImageIcon } from "lucide-react";
+import { Calendar, Clock, MapPin, Heart, Gift, Users, Shirt, Image as ImageIcon, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import PhotoSlider from "@/components/PhotoSlider";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const weddingDate = new Date('2026-01-23T08:00:00Z'); // 11 AM EAT = 8 AM UTC
@@ -50,6 +53,24 @@ export default function Home() {
   '/images/gallery/photo-17.jpg', 
   '/images/gallery/photo-18.jpg',   // ← Add these
   ];
+
+  const copyTillNumber = async () => {
+    try {
+      await navigator.clipboard.writeText('227116');
+      setCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Till number copied to clipboard",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Please copy manually: 227116",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -109,7 +130,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Gift Information - Cash Only */}
+      {/* Gift Information - Cash Only with M-Pesa */}
       <section className="mb-16">
         <div className="max-w-2xl mx-auto">
           <Card className="border-2 border-bronze-300 shadow-xl bg-gradient-to-br from-ivory-50 to-bronze-50">
@@ -124,28 +145,52 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <div className="bg-gradient-to-br from-bronze-50 to-ivory-50 p-8 rounded-xl border-2 border-bronze-300 shadow-inner">
-                <p className="text-sm text-bronze-700 mb-4 text-center font-medium">
-                  KCB Bank Till Number
-                </p>
+                {/* M-Pesa Logo */}
+                <div className="flex justify-center mb-6">
+                  <Image 
+                    src="/images/mpesa-logo.png" 
+                    alt="M-Pesa Logo" 
+                    width={120} 
+                    height={40}
+                    className="object-contain"
+                  />
+                </div>
+                
+                {/* Till Number in Boxes */}
                 <div className="text-center mb-6">
-                  <p className="text-5xl font-bold text-mahogany-800 mb-2">
-                    227116
+                  <p className="text-sm text-bronze-700 mb-4 font-medium">
+                    Till Number
                   </p>
-                  <p className="text-sm text-bronze-600 font-medium">
+                  <div className="flex justify-center items-center gap-3">
+                    <div className="flex gap-2">
+                      {['2', '2', '7', '1', '1', '6'].map((digit, index) => (
+                        <div 
+                          key={index}
+                          className="w-12 h-16 sm:w-14 sm:h-18 bg-white border-2 border-green-600 rounded-lg flex items-center justify-center shadow-md"
+                        >
+                          <span className="text-3xl sm:text-4xl font-bold text-green-700">
+                            {digit}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={copyTillNumber}
+                      className="p-3 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors shadow-md hover:shadow-lg"
+                      title="Copy till number"
+                    >
+                      {copied ? (
+                        <Check className="h-5 w-5" />
+                      ) : (
+                        <Copy className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-sm text-bronze-600 font-medium mt-4">
                     Lipa na M-Pesa → Buy Goods and Services
                   </p>
                 </div>
-                <div className="text-sm text-bronze-700 space-y-2 bg-white/60 p-4 rounded-lg">
-                  <p className="font-semibold text-mahogany-700">Quick Steps:</p>
-                  <ol className="list-decimal list-inside space-y-1.5 ml-2">
-                    <li>Go to M-Pesa menu</li>
-                    <li>Select "Lipa na M-Pesa"</li>
-                    <li>Select "Buy Goods and Services"</li>
-                    <li>Enter Till Number: <strong className="text-mahogany-700">227116</strong></li>
-                    <li>Enter your amount</li>
-                    <li>Enter your M-Pesa PIN</li>
-                  </ol>
-                </div>
+
               </div>
             </CardContent>
           </Card>

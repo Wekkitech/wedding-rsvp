@@ -146,6 +146,19 @@ function RSVPForm() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Name field - Required by API */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Your Name *</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="note">Message for the Couple (Optional)</Label>
                 <Textarea
