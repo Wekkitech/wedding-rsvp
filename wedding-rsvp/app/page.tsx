@@ -40,18 +40,18 @@ export default function Home() {
   '/images/gallery/photo-4.jpg',
   '/images/gallery/photo-5.jpg',
   '/images/gallery/photo-6.jpg',
-  '/images/gallery/photo-7.jpg',    // ← Add these
-  '/images/gallery/photo-8.jpg',    // ← Add these
-  '/images/gallery/photo-9.jpg',    // ← Add these
+  '/images/gallery/photo-7.jpg',
+  '/images/gallery/photo-8.jpg',
+  '/images/gallery/photo-9.jpg',
   '/images/gallery/photo-10.jpg',
-   '/images/gallery/photo-11.jpg',    // ← Add these
-  '/images/gallery/photo-12.jpg',    // ← Add these
-  '/images/gallery/photo-13.jpg',    // ← Add these
+   '/images/gallery/photo-11.jpg',
+  '/images/gallery/photo-12.jpg',
+  '/images/gallery/photo-13.jpg',
   '/images/gallery/photo-14.jpg',
-   '/images/gallery/photo-15.jpg',    // ← Add these
-  '/images/gallery/photo-16.jpg',    // ← Add these
+   '/images/gallery/photo-15.jpg',
+  '/images/gallery/photo-16.jpg',
   '/images/gallery/photo-17.jpg', 
-  '/images/gallery/photo-18.jpg',   // ← Add these
+  '/images/gallery/photo-18.jpg',
   ];
 
   const copyTillNumber = async () => {
@@ -337,32 +337,108 @@ export default function Home() {
       {/* Location */}
       <section className="mb-16">
         <h2 className="section-title text-center mb-8">Location</h2>
-        <Card className="max-w-3xl mx-auto border-2 border-bronze-200">
-          <CardContent className="p-6">
-            <div className="aspect-video bg-gradient-to-br from-mahogany-100 to-orange-50 rounded-lg flex items-center justify-center mb-4">
-              <div className="text-center">
-                <MapPin className="h-12 w-12 text-mahogany-600 mx-auto mb-2" />
-                <p className="text-mahogany-700 font-medium text-lg">Rusinga Island Lodge</p>
-                <p className="text-sm text-bronze-600">Rusinga Island, Kenya</p>
-              </div>
+        <Card className="max-w-3xl mx-auto border-2 border-bronze-200 overflow-hidden">
+          <CardContent className="p-0">
+            {/* Background Image with Overlay */}
+            <div className="relative aspect-video overflow-hidden">
+              <Image 
+                src="/images/Rusinga-Island-Lodge.jpg"
+                alt="Rusinga Island Lodge"
+                fill
+                className="object-cover"
+                priority
+              />
+              {/* Overlay for better text visibility */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
+              
+              {/* Content Overlay - Clickable */}
+              <Link 
+                href="https://maps.google.com/?q=Rusinga+Island+Lodge" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white hover:bg-black/10 transition-colors cursor-pointer group"
+              >
+                <MapPin className="h-12 w-12 mb-4 drop-shadow-lg group-hover:scale-110 transition-transform" />
+                <h3 className="text-2xl md:text-3xl font-serif font-bold mb-2 drop-shadow-lg text-center group-hover:underline">
+                  Rusinga Island Lodge
+                </h3>
+                <p className="text-sm md:text-base drop-shadow-lg text-center">
+                  Rusinga Island, Lake Victoria, Kenya
+                </p>
+                <p className="text-xs mt-2 opacity-75 flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  Click for directions
+                </p>
+              </Link>
             </div>
-            <div className="flex flex-col gap-3">
+
+            {/* Details Section */}
+            <div className="p-6 space-y-6">
+              {/* Distance */}
               <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-mahogany-600 mt-0.5" />
+                <MapPin className="h-5 w-5 text-mahogany-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium text-mahogany-800">Distance from Nakuru CBD</p>
                   <p className="text-sm text-muted-foreground">Approximately 290 kilometers</p>
                 </div>
               </div>
-              <Link 
-                href="https://maps.google.com/?q=Rusinga+Island+Lodge" 
-                target="_blank"
-                className="w-full"
-              >
-                <Button variant="outline" className="w-full border-bronze-300 hover:bg-bronze-50">
-                  Open in Google Maps
-                </Button>
-              </Link>
+
+              {/* Route Information */}
+              <div className="bg-sage-50 p-4 rounded-lg border border-sage-200">
+                <h4 className="font-semibold text-sage-800 mb-3 flex items-center gap-2">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  Recommended Route
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-sage-600"></div>
+                    <span className="font-medium">Nakuru</span>
+                  </div>
+                  <div className="ml-1 border-l-2 border-sage-300 h-6"></div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-sage-600"></div>
+                    <span className="font-medium">Kericho</span>
+                  </div>
+                  <div className="ml-1 border-l-2 border-sage-300 h-6"></div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-sage-600"></div>
+                    <span className="font-medium">Mbita</span>
+                  </div>
+                  <div className="ml-1 border-l-2 border-sage-300 h-6"></div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-mahogany-600"></div>
+                    <span className="font-medium text-mahogany-700">Rusinga Island Lodge</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  ⏱️ Estimated travel time: 4-5 hours by road
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Link 
+                  href="https://maps.google.com/?q=Rusinga+Island+Lodge" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full"
+                >
+                  <Button variant="outline" className="w-full border-bronze-300 hover:bg-bronze-50">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Open in Google Maps
+                  </Button>
+                </Link>
+                <Link 
+                  href="/travel"
+                  className="w-full"
+                >
+                  <Button className="w-full bg-mahogany-600 hover:bg-mahogany-700">
+                    View Travel Info
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -388,5 +464,6 @@ export default function Home() {
         </div>
       </section>
     </div>
+    
   );
 }

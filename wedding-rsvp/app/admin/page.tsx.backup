@@ -6,10 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { Users, CheckCircle, XCircle, Clock, DollarSign, Download, Loader2 } from 'lucide-react';
 import EditRSVPModal from '@/components/EditRSVPModal';
-import DeleteGuestButton from '@/components/DeleteGuestButton';
 
 interface RSVPData {
   id: string;
@@ -21,7 +20,6 @@ interface RSVPData {
   hotel_choice: string | null;
   created_at: string;
   guest: {
-    id: string;
     name: string;
     email: string;
     phone: string | null;
@@ -349,21 +347,12 @@ export default function AdminPage() {
                         {rsvp.pledge_amount ? `KES ${rsvp.pledge_amount.toLocaleString()}` : '-'}
                       </td>
                       <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <EditRSVPModal
-                            rsvp={rsvp}
-                            guest={rsvp.guest}
-                            onSuccess={refreshRSVPs}
-                            adminEmail={email}
-                          />
-                          <DeleteGuestButton
-                            guestId={rsvp.guest.id}
-                            guestName={rsvp.guest.name}
-                            guestEmail={rsvp.guest.email}
-                            adminEmail={email}
-                            onSuccess={refreshRSVPs}
-                          />
-                        </div>
+                        <EditRSVPModal
+                          rsvp={rsvp}
+                          guest={rsvp.guest}
+                          onSuccess={refreshRSVPs}
+                          adminEmail={email}
+                        />
                       </td>
                     </tr>
                   ))}

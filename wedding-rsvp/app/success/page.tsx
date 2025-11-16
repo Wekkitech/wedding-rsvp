@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, MapPin, Calendar, Download, Home, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { generateICalendar } from '@/lib/email-templates';
+import AddToCalendarButton from '@/components/AddToCalendarButton';
 
 export default function SuccessPage() {
   const router = useRouter();
@@ -149,13 +150,9 @@ export default function SuccessPage() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Quick Actions */}
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <Button onClick={handleDownloadCalendar} variant="outline" className="w-full">
-                      <Download className="h-4 w-4 mr-2" />
-                      Add to Calendar
-                    </Button>
+{/* Quick Actions */}
+<div className="grid sm:grid-cols-2 gap-3">
+  <AddToCalendarButton variant="outline" className="w-full" />
                     <Link 
                       href="https://maps.google.com/?q=Rusinga+Island+Lodge" 
                       target="_blank"
