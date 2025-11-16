@@ -144,49 +144,57 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-gradient-to-br from-bronze-50 to-ivory-50 p-4 sm:p-8 rounded-xl border-2 border-bronze-300 shadow-inner">
+              <div className="bg-gradient-to-br from-bronze-50 to-ivory-50 p-3 sm:p-6 md:p-8 rounded-xl border-2 border-bronze-300 shadow-inner">
                 {/* M-Pesa Logo */}
-                <div className="flex justify-center mb-6">
+                <div className="flex justify-center mb-4 sm:mb-6">
                   <Image 
                     src="/images/mpesa-logo.png" 
                     alt="M-Pesa Logo" 
-                    width={120} 
-                    height={40}
-                    className="object-contain"
+                    width={100} 
+                    height={33}
+                    className="object-contain sm:w-[120px] sm:h-[40px]"
                   />
                 </div>
                 
-                {/* Till Number in Boxes - FIXED FOR MOBILE */}
-                <div className="text-center mb-6">
-                  <p className="text-sm text-bronze-700 mb-4 font-medium">
+                {/* Till Number in Boxes - ULTRA MOBILE FRIENDLY */}
+                <div className="text-center mb-4 sm:mb-6">
+                  <p className="text-xs sm:text-sm text-bronze-700 mb-3 sm:mb-4 font-medium">
                     Till Number
                   </p>
-                  <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
-                    <div className="flex gap-1.5 sm:gap-2">
+                  <div className="flex flex-col items-center gap-2 sm:gap-3">
+                    {/* Boxes row */}
+                    <div className="flex gap-1 sm:gap-2">
                       {['2', '2', '7', '1', '1', '6'].map((digit, index) => (
                         <div 
                           key={index}
-                          className="w-10 h-14 sm:w-12 sm:h-16 md:w-14 md:h-18 bg-white border-2 border-green-600 rounded-lg flex items-center justify-center shadow-md"
+                          className="w-8 h-12 sm:w-12 sm:h-16 md:w-14 md:h-18 bg-white border-2 border-green-600 rounded-md sm:rounded-lg flex items-center justify-center shadow-md"
                         >
-                          <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-700">
+                          <span className="text-xl sm:text-3xl md:text-4xl font-bold text-green-700">
                             {digit}
                           </span>
                         </div>
                       ))}
                     </div>
+                    {/* Copy button - Below on mobile, beside on larger screens */}
                     <button
                       onClick={copyTillNumber}
-                      className="p-3 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors shadow-md hover:shadow-lg mt-2 sm:mt-0"
+                      className="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                       title="Copy till number"
                     >
                       {copied ? (
-                        <Check className="h-5 w-5" />
+                        <>
+                          <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <span className="text-sm sm:text-base">Copied!</span>
+                        </>
                       ) : (
-                        <Copy className="h-5 w-5" />
+                        <>
+                          <Copy className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <span className="text-sm sm:text-base">Copy Till Number</span>
+                        </>
                       )}
                     </button>
                   </div>
-                  <p className="text-sm text-bronze-600 font-medium mt-4">
+                  <p className="text-xs sm:text-sm text-bronze-600 font-medium mt-3 sm:mt-4">
                     Lipa na M-Pesa → Buy Goods and Services
                   </p>
                 </div>
