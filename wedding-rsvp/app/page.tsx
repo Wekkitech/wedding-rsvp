@@ -144,7 +144,7 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-gradient-to-br from-bronze-50 to-ivory-50 p-8 rounded-xl border-2 border-bronze-300 shadow-inner">
+              <div className="bg-gradient-to-br from-bronze-50 to-ivory-50 p-4 sm:p-8 rounded-xl border-2 border-bronze-300 shadow-inner">
                 {/* M-Pesa Logo */}
                 <div className="flex justify-center mb-6">
                   <Image 
@@ -156,19 +156,19 @@ export default function Home() {
                   />
                 </div>
                 
-                {/* Till Number in Boxes */}
+                {/* Till Number in Boxes - FIXED FOR MOBILE */}
                 <div className="text-center mb-6">
                   <p className="text-sm text-bronze-700 mb-4 font-medium">
                     Till Number
                   </p>
-                  <div className="flex justify-center items-center gap-3">
-                    <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
+                    <div className="flex gap-1.5 sm:gap-2">
                       {['2', '2', '7', '1', '1', '6'].map((digit, index) => (
                         <div 
                           key={index}
-                          className="w-12 h-16 sm:w-14 sm:h-18 bg-white border-2 border-green-600 rounded-lg flex items-center justify-center shadow-md"
+                          className="w-10 h-14 sm:w-12 sm:h-16 md:w-14 md:h-18 bg-white border-2 border-green-600 rounded-lg flex items-center justify-center shadow-md"
                         >
-                          <span className="text-3xl sm:text-4xl font-bold text-green-700">
+                          <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-700">
                             {digit}
                           </span>
                         </div>
@@ -176,7 +176,7 @@ export default function Home() {
                     </div>
                     <button
                       onClick={copyTillNumber}
-                      className="p-3 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors shadow-md hover:shadow-lg"
+                      className="p-3 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors shadow-md hover:shadow-lg mt-2 sm:mt-0"
                       title="Copy till number"
                     >
                       {copied ? (
