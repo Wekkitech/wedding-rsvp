@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Phone, Loader2, Heart, CheckCircle, XCircle, Mail } from 'lucide-react';
+import { Phone, Loader2, Heart, CheckCircle, XCircle, Mail, AlertCircle } from 'lucide-react';
 
 export default function PhoneVerifyPage() {
   const router = useRouter();
@@ -15,6 +15,7 @@ export default function PhoneVerifyPage() {
   const [step, setStep] = useState<'verify' | 'attendance' | 'email-verify'>('verify');
   const [loading, setLoading] = useState(false);
   const [phone, setPhone] = useState('');
+  const [error, setError] = useState('');
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [verifiedGuest, setVerifiedGuest] = useState<any>(null);
@@ -23,10 +24,12 @@ export default function PhoneVerifyPage() {
   const handlePhoneVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     // Validate phone format
     const phoneRegex = /^\+2547[0-9]{8}$/;
     if (!phoneRegex.test(phone)) {
+      setError("❌ Invalid phone format. Please use: +2547XXXXXXXX");
       toast({
         title: "Invalid Phone Number",
         description: "Please use format: +2547XXXXXXXX",
@@ -49,27 +52,23 @@ export default function PhoneVerifyPage() {
         const rsvpData = await rsvpResponse.json();
         
         if (rsvpData.rsvp && rsvpData.rsvp.guest?.email) {
-          // They already have an RSVP with email - require email verification for privacy
-          setGuestName(rsvpData.rsvp.guest?.name || data.guest?.name || 'Guest');
-          setGuestEmail(rsvpData.rsvp.guest?.email);
-          setVerifiedGuest({
-            phone: phone,
-            name: rsvpData.rsvp.guest?.name || data.guest?.name || 'Guest',
-            email: rsvpData.rsvp.guest?.email
-          });
-          
-          setStep('email-verify');
+          // They already have an RSVP with email - skip email verification
+          localStorage.setItem('verifiedPhone', phone);
+          localStorage.setItem('guestName', rsvpData.rsvp.guest?.name || data.guest?.name || '');
           
           toast({
-            title: "RSVP Found",
-            description: "For security, we'll send a verification link to your email.",
+            title: "Welcome back!",
+            description: `Hi ${rsvpData.rsvp.guest?.name}! Redirecting...`,
           });
+          
+          setTimeout(() => {
+            router.push('/profile');
+          }, 1000);
         } else if (rsvpData.rsvp) {
-} else if (rsvpData.rsvp) {
-  // Has existing RSVP - redirect to profile to view/update
-  localStorage.setItem('verifiedPhone', phone);
-  localStorage.setItem('guestName', rsvpData.rsvp.guest?.name || data.guest?.name || '');
-  router.push('/profile');
+          // Has existing RSVP - redirect to profile to view/update
+          localStorage.setItem('verifiedPhone', phone);
+          localStorage.setItem('guestName', rsvpData.rsvp.guest?.name || data.guest?.name || '');
+          router.push('/profile');
         } else {
           // New RSVP - show attendance question
           setVerifiedGuest({
@@ -85,13 +84,15 @@ export default function PhoneVerifyPage() {
           });
         }
       } else {
+        setError("📵 Phone number not found in guest list. Please contact the couple if you believe this is an error.");
         toast({
           title: "Phone Not Found",
-          description: "This phone number is not on our guest list. Please contact the couple if you believe this is an error.",
+          description: "This phone number is not on our guest list.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      setError("❌ Connection error. Please check your internet and try again.");
       toast({
         title: "Error",
         description: "Failed to verify phone number. Please try again.",
@@ -191,7 +192,10 @@ export default function PhoneVerifyPage() {
                     type="tel"
                     placeholder="+2547XXXXXXXX"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      setError('');
+                    }}
                     required
                     pattern="^\+2547[0-9]{8}$"
                     disabled={loading}
@@ -199,6 +203,13 @@ export default function PhoneVerifyPage() {
                   <p className="text-xs text-muted-foreground">
                     Format: +2547XXXXXXXX (Kenyan mobile number)
                   </p>
+                  
+                  {error && (
+                    <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                      <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                      <p className="text-sm text-red-800">{error}</p>
+                    </div>
+                  )}
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
