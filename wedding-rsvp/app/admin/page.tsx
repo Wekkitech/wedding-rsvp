@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Users, CheckCircle, XCircle, Clock, DollarSign, Download, Loader2 } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Clock, DollarSign, Download, Loader2, Mail, Lock, LogOut } from 'lucide-react';
 import EditRSVPModal from '@/components/EditRSVPModal';
 import DeleteGuestButton from '@/components/DeleteGuestButton';
 
@@ -31,8 +31,9 @@ interface RSVPData {
 export default function AdminPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [step, setStep] = useState<'email' | 'otp' | 'authenticated'>('email');
   const [email, setEmail] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [rsvps, setRsvps] = useState<RSVPData[]>([]);
   const [stats, setStats] = useState({
@@ -44,47 +45,150 @@ export default function AdminPage() {
   });
   const [filter, setFilter] = useState<'all' | 'attending' | 'declined' | 'waitlisted'>('all');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Check for existing session on mount
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  const checkSession = async () => {
+    try {
+      const response = await fetch('/api/admin/auth/verify-session');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.valid) {
+          setEmail(data.email);
+          setStep('authenticated');
+          loadDashboard(data.email);
+        }
+      }
+    } catch (error) {
+      console.error('Session check failed:', error);
+    }
+  };
+
+  const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/admin/rsvps?email=${email}`);
+      const response = await fetch('/api/admin/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
       const data = await response.json();
 
       if (response.ok) {
-        setIsAuthenticated(true);
-        setRsvps(data.rsvps);
-        setStats(data.stats);
-        localStorage.setItem('adminEmail', email);
+        setStep('otp');
         toast({
-          title: "Welcome!",
-          description: "Admin dashboard loaded successfully.",
+          title: 'Code Sent!',
+          description: 'Check your email for the 6-digit code.',
         });
+        
+        // Dev mode: show OTP in console
+        if (data.otp) {
+          console.log('🔐 DEV MODE - OTP:', data.otp);
+          toast({
+            title: 'DEV MODE',
+            description: `OTP: ${data.otp}`,
+            variant: 'default',
+          });
+        }
       } else {
         toast({
-          title: "Access Denied",
-          description: "You are not authorized to access this page.",
-          variant: "destructive",
+          title: 'Error',
+          description: data.error || 'Failed to send OTP',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to load admin dashboard.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Something went wrong',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExportCSV = async () => {
-    const adminEmail = localStorage.getItem('adminEmail');
-    if (!adminEmail) return;
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      const response = await fetch(`/api/admin/rsvps?email=${adminEmail}&format=csv`);
+      const response = await fetch('/api/admin/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStep('authenticated');
+        toast({
+          title: 'Login Successful!',
+          description: 'Loading dashboard...',
+        });
+        
+        loadDashboard(email);
+      } else {
+        toast({
+          title: 'Invalid Code',
+          description: data.error || 'Please check your code and try again',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Something went wrong',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDashboard = async (adminEmail: string) => {
+    try {
+      const response = await fetch(`/api/admin/rsvps?email=${adminEmail}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setRsvps(data.rsvps);
+        setStats(data.stats);
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load dashboard data',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/admin/auth/logout', { method: 'POST' });
+      setStep('email');
+      setEmail('');
+      setOtp('');
+      setRsvps([]);
+      toast({
+        title: 'Logged Out',
+        description: 'You have been logged out successfully',
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const response = await fetch(`/api/admin/rsvps?email=${email}&format=csv`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -96,42 +200,19 @@ export default function AdminPage() {
       window.URL.revokeObjectURL(url);
 
       toast({
-        title: "Export Successful",
-        description: "RSVPs exported to CSV file.",
+        title: 'Export Successful',
+        description: 'RSVPs exported to CSV file.',
       });
     } catch (error) {
       toast({
-        title: "Export Failed",
-        description: "Failed to export RSVPs.",
-        variant: "destructive",
+        title: 'Export Failed',
+        description: 'Failed to export RSVPs.',
+        variant: 'destructive',
       });
     }
   };
 
-  const refreshRSVPs = async () => {
-    const adminEmail = localStorage.getItem('adminEmail');
-    if (!adminEmail) return;
-
-    try {
-      const response = await fetch(`/api/admin/rsvps?email=${adminEmail}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setRsvps(data.rsvps);
-        setStats(data.stats);
-      }
-    } catch (error) {
-      console.error('Failed to refresh RSVPs:', error);
-    }
-  };
-
-  useEffect(() => {
-    const adminEmail = localStorage.getItem('adminEmail');
-    if (adminEmail) {
-      setEmail(adminEmail);
-      handleLogin({ preventDefault: () => {} } as any);
-    }
-  }, []);
+  const refreshRSVPs = () => loadDashboard(email);
 
   const filteredRSVPs = rsvps.filter(rsvp => {
     if (filter === 'all') return true;
@@ -141,18 +222,25 @@ export default function AdminPage() {
     return true;
   });
 
-  if (!isAuthenticated) {
+  // Login UI
+  if (step !== 'authenticated') {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-md mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-mahogany-800">Admin Login</CardTitle>
-              <CardDescription>Enter your admin email to access the dashboard</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sage-50 to-blush-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">
+              {step === 'email' ? '🔐 Admin Login' : '📧 Enter Code'}
+            </CardTitle>
+            <CardDescription className="text-center">
+              {step === 'email' 
+                ? 'Enter your admin email to receive a login code' 
+                : 'Check your email for the 6-digit code'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {step === 'email' ? (
+              <form onSubmit={handleRequestOTP} className="space-y-4">
+                <div>
                   <Label htmlFor="email">Admin Email</Label>
                   <Input
                     id="email"
@@ -161,27 +249,108 @@ export default function AdminPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={loading}
                   />
                 </div>
+
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Access Dashboard
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending Code...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Send Login Code
+                    </>
+                  )}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-        </div>
+            ) : (
+              <form onSubmit={handleVerifyOTP} className="space-y-4">
+                <div className="text-sm text-center text-muted-foreground mb-4">
+                  Code sent to <strong>{email}</strong>
+                </div>
+
+                <div>
+                  <Label htmlFor="otp">6-Digit Code</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    placeholder="000000"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    maxLength={6}
+                    required
+                    disabled={loading}
+                    className="text-center text-2xl tracking-widest"
+                    autoFocus
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="mr-2 h-4 w-4" />
+                      Verify & Login
+                    </>
+                  )}
+                </Button>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep('email');
+                      setOtp('');
+                    }}
+                    disabled={loading}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    ← Use different email
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRequestOTP}
+                    disabled={loading}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    Resend Code
+                  </button>
+                </div>
+
+                <p className="text-xs text-center text-muted-foreground mt-4">
+                  Code expires in 10 minutes • Max 5 attempts
+                </p>
+              </form>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  // Dashboard UI (authenticated)
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-serif text-mahogany-800 mb-2">Admin Dashboard</h1>
-          <p className="text-bronze-600">Manage RSVPs and guest list</p>
+        {/* Header with Logout */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-serif text-mahogany-800 mb-2">Admin Dashboard</h1>
+            <p className="text-bronze-600">Manage RSVPs and guest list • Logged in as {email}</p>
+          </div>
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </div>
 
         {/* Stats Cards */}
