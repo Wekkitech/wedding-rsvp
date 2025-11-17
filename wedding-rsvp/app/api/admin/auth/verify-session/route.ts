@@ -10,7 +10,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ valid: false });
   }
 
-  const { valid, email } = await verifyAdminSession(sessionToken);
+  const { valid, email, role } = await verifyAdminSession(sessionToken);
 
-  return NextResponse.json({ valid, email });
+  console.log('Verify session result:', { valid, email, role }); // Debug log
+
+  return NextResponse.json({ valid, email, role });
 }

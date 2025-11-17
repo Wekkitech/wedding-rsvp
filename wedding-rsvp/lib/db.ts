@@ -154,7 +154,9 @@ export async function isAdmin(email: string): Promise<boolean> {
   return !error && !!data;
 }
 
-// Add these functions to your existing lib/db.ts file
+// ================================================
+// PHONE WHITELIST FUNCTIONS
+// ================================================
 
 export async function isPhoneWhitelisted(phone: string): Promise<boolean> {
   const { data, error } = await supabaseAdmin
@@ -232,4 +234,174 @@ export async function removePhoneFromWhitelist(id: string) {
   }
 
   return true;
+}
+
+// ================================================
+// ADMIN ROLE MANAGEMENT FUNCTIONS (NEW)
+// ================================================
+
+/**
+ * Get admin role for a given email
+ */
+export async function getAdminRole(email: string): Promise<{ isAdmin: boolean; role: string | null }> {
+  const { data, error } = await supabaseAdmin
+    .from('admins')
+    .select('role')
+    .eq('email', email)
+    .single();
+
+  if (error || !data) {
+    return { isAdmin: false, role: null };
+  }
+
+  return { isAdmin: true, role: data.role };
+}
+
+/**
+ * Check if user has specific permission
+ */
+export async function hasPermission(
+  email: string, 
+  permission: 'view' | 'edit' | 'delete' | 'manage_admins'
+): Promise<boolean> {
+  const { role } = await getAdminRole(email);
+  
+  if (!role) return false;
+  
+  // Super admin can do everything
+  if (role === 'super_admin') return true;
+  
+  // Event planner permissions
+  if (role === 'event_planner') {
+    return permission === 'view'; // Can only view
+  }
+  
+  return false;
+}
+
+/**
+ * List all admins (super admin only)
+ */
+export async function listAdmins(requestorEmail: string) {
+  // Check if requestor is super admin
+  const { role } = await getAdminRole(requestorEmail);
+  if (role !== 'super_admin') {
+    throw new Error('Unauthorized');
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('admins')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Create admin (super admin only)
+ */
+export async function createAdmin(
+  requestorEmail: string,
+  newAdminEmail: string,
+  role: 'super_admin' | 'event_planner'
+) {
+  // Check if requestor is super admin
+  const { role: requestorRole } = await getAdminRole(requestorEmail);
+  if (requestorRole !== 'super_admin') {
+    throw new Error('Only super admins can create admins');
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('admins')
+    .insert({
+      email: newAdminEmail,
+      role: role,
+      created_by: requestorEmail,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Update admin role (super admin only)
+ */
+export async function updateAdminRole(
+  requestorEmail: string,
+  targetEmail: string,
+  newRole: 'super_admin' | 'event_planner'
+) {
+  // Check if requestor is super admin
+  const { role: requestorRole } = await getAdminRole(requestorEmail);
+  if (requestorRole !== 'super_admin') {
+    throw new Error('Only super admins can update admin roles');
+  }
+
+  // Prevent removing last super admin
+  if (newRole === 'event_planner') {
+    const { data: superAdmins } = await supabaseAdmin
+      .from('admins')
+      .select('email')
+      .eq('role', 'super_admin');
+    
+    if (superAdmins && superAdmins.length === 1 && superAdmins[0].email === targetEmail) {
+      throw new Error('Cannot remove the last super admin');
+    }
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('admins')
+    .update({ 
+      role: newRole,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('email', targetEmail)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Delete admin (super admin only)
+ */
+export async function deleteAdmin(
+  requestorEmail: string,
+  targetEmail: string
+) {
+  // Check if requestor is super admin
+  const { role: requestorRole } = await getAdminRole(requestorEmail);
+  if (requestorRole !== 'super_admin') {
+    throw new Error('Only super admins can delete admins');
+  }
+
+  // Prevent self-deletion
+  if (requestorEmail === targetEmail) {
+    throw new Error('Cannot delete your own admin account');
+  }
+
+  // Prevent removing last super admin
+  const { role: targetRole } = await getAdminRole(targetEmail);
+  if (targetRole === 'super_admin') {
+    const { data: superAdmins } = await supabaseAdmin
+      .from('admins')
+      .select('email')
+      .eq('role', 'super_admin');
+    
+    if (superAdmins && superAdmins.length === 1) {
+      throw new Error('Cannot delete the last super admin');
+    }
+  }
+
+  const { error } = await supabaseAdmin
+    .from('admins')
+    .delete()
+    .eq('email', targetEmail);
+
+  if (error) throw error;
+  return { success: true };
 }

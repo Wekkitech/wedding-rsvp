@@ -25,9 +25,14 @@ export async function POST(request: NextRequest) {
     const ipAddress = request.headers.get('x-forwarded-for') || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    const { sessionToken, expiresAt } = await createAdminSession(email, ipAddress, userAgent);
+    const { sessionToken, expiresAt, role } = await createAdminSession(email, ipAddress, userAgent);
 
-    const response = NextResponse.json({ success: true, message: 'Login successful', expiresAt });
+    const response = NextResponse.json({ 
+      success: true, 
+      message: 'Login successful', 
+      expiresAt,
+      role // ADD THIS LINE - return role in response
+    });
 
     response.cookies.set('admin_session', sessionToken, {
       httpOnly: true,

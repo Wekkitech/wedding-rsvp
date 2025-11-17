@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Users, CheckCircle, XCircle, Clock, DollarSign, Download, Loader2, Mail, Lock, LogOut } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Clock, DollarSign, Download, Loader2, Mail, Lock, LogOut, Shield } from 'lucide-react';
 import EditRSVPModal from '@/components/EditRSVPModal';
 import DeleteGuestButton from '@/components/DeleteGuestButton';
 
@@ -35,6 +35,7 @@ export default function AdminPage() {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState<'super_admin' | 'event_planner'>('event_planner');
   const [rsvps, setRsvps] = useState<RSVPData[]>([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -45,7 +46,6 @@ export default function AdminPage() {
   });
   const [filter, setFilter] = useState<'all' | 'attending' | 'declined' | 'waitlisted'>('all');
 
-  // Check for existing session on mount
   useEffect(() => {
     checkSession();
   }, []);
@@ -55,8 +55,10 @@ export default function AdminPage() {
       const response = await fetch('/api/admin/auth/verify-session');
       if (response.ok) {
         const data = await response.json();
+        console.log('Session data:', data); // Debug log
         if (data.valid) {
           setEmail(data.email);
+          setUserRole(data.role || 'event_planner');
           setStep('authenticated');
           loadDashboard(data.email);
         }
@@ -86,7 +88,6 @@ export default function AdminPage() {
           description: 'Check your email for the 6-digit code.',
         });
         
-        // Dev mode: show OTP in console
         if (data.otp) {
           console.log('🔐 DEV MODE - OTP:', data.otp);
           toast({
@@ -125,12 +126,14 @@ export default function AdminPage() {
       });
 
       const data = await response.json();
+      console.log('OTP verify response:', data); // Debug log
 
       if (response.ok) {
+        setUserRole(data.role || 'event_planner');
         setStep('authenticated');
         toast({
           title: 'Login Successful!',
-          description: 'Loading dashboard...',
+          description: `Welcome ${data.role === 'super_admin' ? 'Super Admin' : 'Event Planner'}!`,
         });
         
         loadDashboard(email);
@@ -177,6 +180,7 @@ export default function AdminPage() {
       setEmail('');
       setOtp('');
       setRsvps([]);
+      setUserRole('event_planner');
       toast({
         title: 'Logged Out',
         description: 'You have been logged out successfully',
@@ -222,16 +226,15 @@ export default function AdminPage() {
     return true;
   });
 
-  // Login UI
   if (step !== 'authenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sage-50 to-blush-50 p-4">
         <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">
               {step === 'email' ? '🔐 Admin Login' : '📧 Enter Code'}
             </CardTitle>
-            <CardDescription className="text-center">
+            <CardDescription>
               {step === 'email' 
                 ? 'Enter your admin email to receive a login code' 
                 : 'Check your email for the 6-digit code'}
@@ -337,23 +340,42 @@ export default function AdminPage() {
     );
   }
 
-  // Dashboard UI (authenticated)
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-7xl mx-auto">
-        {/* Header with Logout */}
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-serif text-mahogany-800 mb-2">Admin Dashboard</h1>
-            <p className="text-bronze-600">Manage RSVPs and guest list • Logged in as {email}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-bronze-600">
+                Manage RSVPs and guest list • Logged in as {email}
+              </p>
+              <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                userRole === 'super_admin' 
+                  ? 'bg-purple-100 text-purple-700 border border-purple-300' 
+                  : 'bg-blue-100 text-blue-700 border border-blue-300'
+              }`}>
+                {userRole === 'super_admin' ? '👑 Super Admin' : '📋 Event Planner'}
+              </span>
+            </div>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            {userRole === 'super_admin' && (
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/admin/manage-admins')}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Manage Admins
+              </Button>
+            )}
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
@@ -412,24 +434,25 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Total Pledges */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-orange-600" />
+        {/* Total Pledges - Super Admin Only */}
+        {userRole === 'super_admin' && (
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-mahogany-700">
+                    KES {stats.totalPledges.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Total Gift Pledges</p>
+                </div>
               </div>
-              <div>
-                <p className="text-3xl font-bold text-mahogany-700">
-                  KES {stats.totalPledges.toLocaleString()}
-                </p>
-                <p className="text-sm text-muted-foreground">Total Gift Pledges</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Actions and Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -471,7 +494,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* RSVPs Table */}
         <Card>
           <CardHeader>
             <CardTitle className="text-mahogany-800">Guest List ({filteredRSVPs.length})</CardTitle>
@@ -486,7 +508,9 @@ export default function AdminPage() {
                     <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Phone</th>
                     <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Status</th>
                     <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Hotel</th>
-                    <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Pledge</th>
+                    {userRole === 'super_admin' && (
+                      <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Pledge</th>
+                    )}
                     <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Actions</th>
                   </tr>
                 </thead>
@@ -514,24 +538,34 @@ export default function AdminPage() {
                       <td className="p-3 text-sm text-muted-foreground">
                         {rsvp.hotel_choice?.replace(/_/g, ' ') || 'N/A'}
                       </td>
-                      <td className="p-3 text-sm font-medium text-mahogany-700">
-                        {rsvp.pledge_amount ? `KES ${rsvp.pledge_amount.toLocaleString()}` : '-'}
-                      </td>
+                      {userRole === 'super_admin' && (
+                        <td className="p-3 text-sm font-medium text-mahogany-700">
+                          {rsvp.pledge_amount ? `KES ${rsvp.pledge_amount.toLocaleString()}` : '-'}
+                        </td>
+                      )}
                       <td className="p-3">
                         <div className="flex items-center gap-2">
-                          <EditRSVPModal
-                            rsvp={rsvp}
-                            guest={rsvp.guest}
-                            onSuccess={refreshRSVPs}
-                            adminEmail={email}
-                          />
-                          <DeleteGuestButton
-                            guestId={rsvp.guest.id}
-                            guestName={rsvp.guest.name}
-                            guestEmail={rsvp.guest.email}
-                            adminEmail={email}
-                            onSuccess={refreshRSVPs}
-                          />
+                          {userRole === 'super_admin' ? (
+                            <>
+                              <EditRSVPModal
+                                rsvp={rsvp}
+                                guest={rsvp.guest}
+                                onSuccess={refreshRSVPs}
+                                adminEmail={email}
+                              />
+                              <DeleteGuestButton
+                                guestId={rsvp.guest.id}
+                                guestName={rsvp.guest.name}
+                                guestEmail={rsvp.guest.email}
+                                adminEmail={email}
+                                onSuccess={refreshRSVPs}
+                              />
+                            </>
+                          ) : (
+                            <span className="text-xs text-muted-foreground px-2 py-1 bg-gray-50 rounded">
+                              View Only
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>

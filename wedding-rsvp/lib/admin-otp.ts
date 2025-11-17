@@ -1,6 +1,7 @@
 // lib/admin-otp.ts
 import { supabaseAdmin } from './supabase-admin';
 import crypto from 'crypto';
+import { getAdminRole } from './db';
 
 const OTP_LENGTH = 6;
 const OTP_EXPIRY_MINUTES = 10;
@@ -103,14 +104,23 @@ export async function verifyAdminOTP(
  * Increment failed attempt counter
  */
 export async function incrementOTPAttempts(email: string, otp: string): Promise<void> {
-  await supabaseAdmin
+  // Get current attempts
+  const { data } = await supabaseAdmin
     .from('admin_otp')
-    .update({ 
-      attempts: supabaseAdmin.rpc('increment', { row_id: 'id' }) 
-    })
+    .select('attempts')
     .eq('email', email)
     .eq('otp_code', otp)
-    .eq('used', false);
+    .eq('used', false)
+    .single();
+
+  if (data) {
+    await supabaseAdmin
+      .from('admin_otp')
+      .update({ attempts: (data.attempts || 0) + 1 })
+      .eq('email', email)
+      .eq('otp_code', otp)
+      .eq('used', false);
+  }
 }
 
 /**
@@ -120,10 +130,13 @@ export async function createAdminSession(
   email: string,
   ipAddress?: string,
   userAgent?: string
-): Promise<{ sessionToken: string; expiresAt: Date }> {
+): Promise<{ sessionToken: string; expiresAt: Date; role: string }> {
   const sessionToken = generateSessionToken();
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour session
+
+  // Get admin role
+  const { role } = await getAdminRole(email);
 
   const { error } = await supabaseAdmin
     .from('admin_sessions')
@@ -133,6 +146,7 @@ export async function createAdminSession(
       expires_at: expiresAt.toISOString(),
       ip_address: ipAddress,
       user_agent: userAgent,
+      role: role || 'event_planner',
     });
 
   if (error) {
@@ -140,7 +154,7 @@ export async function createAdminSession(
     throw new Error('Failed to create session');
   }
 
-  return { sessionToken, expiresAt };
+  return { sessionToken, expiresAt, role: role || 'event_planner' };
 }
 
 /**
@@ -148,7 +162,7 @@ export async function createAdminSession(
  */
 export async function verifyAdminSession(
   sessionToken: string
-): Promise<{ valid: boolean; email?: string }> {
+): Promise<{ valid: boolean; email?: string; role?: string }> {
   const { data, error } = await supabaseAdmin
     .from('admin_sessions')
     .select('*')
@@ -176,7 +190,7 @@ export async function verifyAdminSession(
     .update({ last_activity: new Date().toISOString() })
     .eq('id', data.id);
 
-  return { valid: true, email: data.email };
+  return { valid: true, email: data.email, role: data.role };
 }
 
 /**
