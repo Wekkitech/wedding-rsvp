@@ -2,10 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 export default function Navigation() {
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith('/admin');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const handleLogout = () => {
+  localStorage.removeItem('verifiedPhone');
+  localStorage.removeItem('guestName');
+  localStorage.removeItem('guestEmail');
+  localStorage.removeItem('preAttending');
+  localStorage.removeItem('rsvp');
+  window.location.href = '/';
+};
+
+  useEffect(() => {
+    // Check if user has verified phone
+    const verifiedPhone = localStorage.getItem('verifiedPhone');
+    setIsLoggedIn(!!verifiedPhone);
+  }, [pathname]);
 
   if (isAdminPage) {
     // Admin Navigation
@@ -51,7 +67,7 @@ export default function Navigation() {
                 href="/" 
                 className="text-sm text-bronze-600 hover:text-mahogany-600 transition-colors"
               >
-                ← Back to Site
+                Back to Site
               </Link>
             </div>
           </div>
@@ -66,7 +82,7 @@ export default function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="text-xl font-serif text-mahogany-800 hover:text-mahogany-600">
-          🤎 B&D
+            🤎 B&D
           </Link>
           <div className="flex items-center gap-6">
             <Link 
@@ -109,16 +125,29 @@ export default function Navigation() {
             >
               FAQ
             </Link>
-            <Link 
-              href="/profile" 
-              className={`text-sm transition-colors ${
-                pathname === '/profile' 
-                  ? 'text-mahogany-600 font-semibold' 
-                  : 'text-bronze-700 hover:text-mahogany-600'
-              }`}
-            >
-              Profile
-            </Link>
+           {isLoggedIn ? (
+  <>
+    <Link 
+      href="/profile" 
+      className="text-sm text-mahogany-600 hover:text-mahogany-700 font-medium transition-colors"
+    >
+      My RSVP
+    </Link>
+    <button
+      onClick={handleLogout}
+      className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+    >
+      Logout
+    </button>
+  </>
+) : (
+  <Link 
+    href="/verify-phone" 
+    className="text-sm text-mahogany-600 hover:text-mahogany-700 font-medium transition-colors"
+  >
+    Sign In
+  </Link>
+)}
           </div>
         </div>
       </div>

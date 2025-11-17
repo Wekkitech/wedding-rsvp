@@ -65,11 +65,11 @@ export default function PhoneVerifyPage() {
             description: "For security, we'll send a verification link to your email.",
           });
         } else if (rsvpData.rsvp) {
-} else if (rsvpData.rsvp) {
-  // Has existing RSVP - redirect to profile to view/update
-  localStorage.setItem('verifiedPhone', phone);
-  localStorage.setItem('guestName', rsvpData.rsvp.guest?.name || data.guest?.name || '');
-  router.push('/profile');
+          // Has RSVP but no email - allow direct access (shouldn't happen with new flow)
+          localStorage.setItem('verifiedPhone', phone);
+          localStorage.setItem('guestName', rsvpData.rsvp.guest?.name || data.guest?.name || '');
+          localStorage.setItem('preAttending', rsvpData.rsvp.attending.toString());
+          router.push('/rsvp');
         } else {
           // New RSVP - show attendance question
           setVerifiedGuest({
