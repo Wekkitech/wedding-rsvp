@@ -2,16 +2,178 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, MapPin, Heart, Gift, Users, Shirt, Image as ImageIcon, Copy, Check } from "lucide-react";
+import { Calendar, Clock, MapPin, Heart, Gift, Users, Shirt, Image as ImageIcon, Copy, Check, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import PhotoSlider from "@/components/PhotoSlider";
 import { useToast } from "@/hooks/use-toast";
 
+// Color data for dress code selector
+const dressCodeColors = [
+  {
+    id: 'coffee',
+    name: 'Coffee',
+    emoji: '☕',
+    hex: '#6F4E37',
+    tagline: 'For the Bold Ones',
+    description: 'Choose Coffee if you\'re the',
+    traits: [
+      'confident one in the room',
+      'outspoken, energetic, always ready to dance',
+      'friend who never says no to an adventure'
+    ],
+    closing: 'If you walk in wearing Coffee, just know: we expect moves.'
+  },
+  {
+    id: 'honey',
+    name: 'Honey',
+    emoji: '🍯',
+    hex: '#EB9605',
+    tagline: 'For the Sweethearts',
+    description: 'Wear Honey if you\'re the',
+    traits: [
+      'soft-spoken one',
+      'lover of warm hugs',
+      'person who brings peace wherever you go'
+    ],
+    closing: 'Honey wearers = our emotional support squad.'
+  },
+  {
+    id: 'cinnamon',
+    name: 'Cinnamon',
+    emoji: '🍁',
+    hex: '#D2691E',
+    tagline: 'The Life of the Party',
+    description: 'Pick Cinnamon if you\'re',
+    traits: [
+      'spicy, funny, dramatic in the best way',
+      'guaranteed to laugh the loudest',
+      'the one who will keep the vibes alive'
+    ],
+    closing: 'Cinnamon people never go unnoticed.'
+  },
+  {
+    id: 'caramel',
+    name: 'Caramel',
+    emoji: '🤎',
+    hex: '#FFD59A',
+    tagline: 'Smooth Operators',
+    description: 'Choose Caramel if you\'re',
+    traits: [
+      'easygoing',
+      'effortlessly stylish',
+      'the "I just came to chill and look good" type'
+    ],
+    closing: 'Caramel guests are the aesthetic ones.'
+  },
+  {
+    id: 'chestnut',
+    name: 'Chestnut',
+    emoji: '🌰',
+    hex: '#954535',
+    tagline: 'The Wise Ones',
+    description: 'Wear Chestnut if you\'re',
+    traits: [
+      'mature, collected, calm',
+      'the advisor in your friend group',
+      'the one who says "Let me tell you something…"'
+    ],
+    closing: 'Chestnut guests bring grounding energy.'
+  },
+  {
+    id: 'ginger',
+    name: 'Ginger',
+    emoji: '🌾',
+    hex: '#B06500',
+    tagline: 'The Fun Rebels',
+    description: 'Pick Ginger if you\'re the',
+    traits: [
+      'playful one',
+      'unpredictable in a fun way',
+      'lover of bright, quirky styles'
+    ],
+    closing: 'Ginger guests = certified scene-stealers.'
+  },
+  {
+    id: 'walnut',
+    name: 'Walnut',
+    emoji: '🌳',
+    hex: '#5D432C',
+    tagline: 'For the Classics',
+    description: 'Choose Walnut if you\'re',
+    traits: [
+      'timeless in your style',
+      'low-key but elegant',
+      'the one who looks expensive without trying'
+    ],
+    closing: 'Walnut is for our minimal-but-classy fam.'
+  },
+  {
+    id: 'rust',
+    name: 'Rust Brown',
+    emoji: '🔥',
+    hex: '#B7410E',
+    tagline: 'For the Hot Ones',
+    description: 'Wear Rust Brown if you\'re',
+    traits: [
+      'warm',
+      'bold',
+      'a little dramatic and very confident'
+    ],
+    closing: 'Rust Brown = the "I understood the assignment" squad.'
+  },
+  {
+    id: 'toffee',
+    name: 'Toffee',
+    emoji: '🍬',
+    hex: '#755139',
+    tagline: 'The Sweet Sophisticates',
+    description: 'Choose Toffee if you\'re the friend who is:',
+    traits: [
+      'effortlessly classy',
+      'sweet but with a little mystery',
+      'always put-together',
+      'the one who somehow knows the best restaurants and the best tea'
+    ],
+    closing: 'Toffee wearers bring soft elegance and warm charm.'
+  },
+  {
+    id: 'mocha',
+    name: 'Mocha Brown',
+    emoji: '☕',
+    hex: '#3C280D',
+    tagline: 'The Cozy Vibes Crew',
+    description: 'Pick Mocha if you are:',
+    traits: [
+      'warm, friendly, and easy to talk to',
+      'the "let\'s catch up over coffee" type',
+      'that comforting friend everyone loves',
+      'chill, calm, and emotionally steady'
+    ],
+    closing: 'Mocha guests = wholesome, welcoming energy all day.'
+  },
+  {
+    id: 'tan',
+    name: 'Tan',
+    emoji: '🌞',
+    hex: '#D2B48C',
+    tagline: 'The Minimalist Sunbeams',
+    description: 'Wear Tan if you\'re:',
+    traits: [
+      'simple, clean, and effortlessly stylish',
+      'the soft-life ambassador',
+      'lover of neutrals, soft glam, and light tones',
+      'the one who looks good in ANYTHING without trying'
+    ],
+    closing: 'Tan guests bring the soft, sunlit glow to the celebration.'
+  }
+];
+
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [copied, setCopied] = useState(false);
+  const [selectedColor, setSelectedColor] = useState<typeof dressCodeColors[0] | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -175,130 +337,50 @@ export default function Home() {
                         </div>
                       ))}
                     </div>
-                    {/* Copy button - Below on mobile, beside on larger screens */}
+                    
+                    {/* Copy button - separate row on mobile */}
                     <button
                       onClick={copyTillNumber}
-                      className="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                      title="Copy till number"
+                      className="flex items-center gap-1.5 text-xs sm:text-sm text-bronze-600 hover:text-mahogany-700 transition-colors bg-white px-3 py-1.5 rounded-full border border-bronze-200 hover:border-mahogany-300"
                     >
                       {copied ? (
                         <>
-                          <Check className="h-4 w-4 sm:h-5 sm:w-5" />
-                          <span className="text-sm sm:text-base">Copied!</span>
+                          <Check className="h-3.5 w-3.5 text-green-600" />
+                          <span className="text-green-600 font-medium">Copied!</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="h-4 w-4 sm:h-5 sm:w-5" />
-                          <span className="text-sm sm:text-base">Copy Till Number</span>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copy number</span>
                         </>
                       )}
                     </button>
                   </div>
-                  <p className="text-xs sm:text-sm text-bronze-600 font-medium mt-3 sm:mt-4">
-                    Lipa na M-Pesa → Buy Goods and Services
-                  </p>
                 </div>
-
+                
+                <p className="text-center text-xs sm:text-sm text-bronze-600 px-2">
+                  Use this Till Number when sending via M-Pesa
+                </p>
               </div>
             </CardContent>
           </Card>
         </div>
       </section>
 
-
-{/* Gallery Section with Slider */}
-<section className="mb-16">
-  <div className="text-center mb-10">
-    <ImageIcon className="h-12 w-12 text-orange-600 mx-auto mb-4" />
-    <h2 className="section-title text-center">Our Journey</h2>
-    <p className="text-bronze-600 max-w-2xl mx-auto">
-      Moments that brought us here - a celebration of love, laughter, and memories
-    </p>
-  </div>
-  
-  <div className="max-w-6xl mx-auto">
-    <PhotoSlider 
-      photos={galleryPhotos} 
-      photosPerView={6}
-      autoPlayInterval={5000}
-    />
-  </div>
-</section>
-
-      {/* Event Schedule */}
+      {/* Photo Gallery */}
       <section className="mb-16">
-        <h2 className="section-title text-center mb-8">Event Schedule</h2>
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          <Card className="border-2 border-bronze-200">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-12 w-12 rounded-full bg-mahogany-100 flex items-center justify-center">
-                  <Heart className="h-6 w-6 text-mahogany-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-mahogany-800">Ceremony</CardTitle>
-                  <CardDescription>The main event</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-bronze-700 mb-2">
-                <Clock className="h-4 w-4" />
-                <span className="font-medium">11:00 AM - 1:00 PM</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Join us as we exchange vows in an intimate ceremony surrounded by nature at Rusinga Island Lodge.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-bronze-200">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-orange-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-mahogany-800">Reception</CardTitle>
-                  <CardDescription>Celebration time</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-bronze-700 mb-2">
-                <Clock className="h-4 w-4" />
-                <span className="font-medium">1:30 PM - 4:30 PM</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Celebrate with us! Enjoy food, drinks, dancing, and creating beautiful memories together.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        <h2 className="section-title text-center mb-8">Our Moments</h2>
+        <PhotoSlider photos={galleryPhotos} />
       </section>
 
       {/* Important Information */}
       <section className="mb-16">
         <h2 className="section-title text-center mb-8">Important Information</h2>
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-4">
           <Card className="border-2 border-bronze-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-mahogany-800">
                 <Users className="h-5 w-5 text-mahogany-600" />
-                Adults-Only Event
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                We love your little ones! For this intimate ceremony, we're keeping it adults-only, except for breastfeeding infants. We hope you understand and can arrange care for the day.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-bronze-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-mahogany-800">
-                <Heart className="h-5 w-5 text-mahogany-600" />
                 Couples Submit Separately
               </CardTitle>
             </CardHeader>
@@ -309,20 +391,49 @@ export default function Home() {
             </CardContent>
           </Card>
 
+          {/* Enhanced Dress Code Section - Color Selector */}
           <Card className="border-2 border-bronze-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-mahogany-800">
                 <Shirt className="h-5 w-5 text-mahogany-600" />
                 Dress Code
               </CardTitle>
+              <CardDescription className="text-bronze-700">
+                Find Your Shade of Love
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-2">
-                <strong>Semi-Formal Garden Attire</strong>
+              <p className="text-sm text-muted-foreground mb-4">
+                Pick a shade of brown that matches your vibe, your love, or your personality, and come shine with us on our big day.
               </p>
-              <p className="text-sm text-muted-foreground">
-                Think elegant but comfortable. Flowy dresses, light suits, and garden party vibes. The venue is outdoors, so consider your footwear!
+              
+              {/* Color Grid */}
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
+                {dressCodeColors.map((color) => (
+                  <button
+                    key={color.id}
+                    onClick={() => setSelectedColor(color)}
+                    className="group relative aspect-square rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-mahogany-500 focus:ring-offset-2"
+                    style={{ backgroundColor: color.hex }}
+                    title={color.name}
+                  >
+                    <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-lg">
+                      <span className="text-4xl sm:text-5xl">{color.emoji}</span>
+                    </div>
+                    <span className="sr-only">{color.name}</span>
+                  </button>
+                ))}
+              </div>
+              
+              <p className="text-xs text-center text-muted-foreground">
+                Tap any color to discover your shade
               </p>
+              
+              <div className="mt-4 pt-4 border-t border-bronze-200">
+                <p className="text-xs text-muted-foreground text-center italic">
+                  Choose the shade that feels most you… and come celebrate love, laughter, and a whole lot of brown magic with us!
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -471,6 +582,83 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Color Modal */}
+      {selectedColor && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedColor(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Color Header */}
+            <div 
+              className="p-6 text-center relative"
+              style={{ backgroundColor: selectedColor.hex }}
+            >
+              <button
+                onClick={() => setSelectedColor(null)}
+                className="absolute top-3 right-3 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-1.5 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <span className="text-4xl mb-2 block">{selectedColor.emoji}</span>
+              <h3 className="text-2xl font-serif font-bold text-white drop-shadow-lg">
+                {selectedColor.name}
+              </h3>
+              <p className="text-white/90 text-sm font-medium">
+                {selectedColor.tagline}
+              </p>
+            </div>
+
+            {/* Color Details */}
+            <div className="p-6">
+              <p className="text-sm text-muted-foreground mb-3">
+                {selectedColor.description}
+              </p>
+              <ul className="space-y-2 mb-4">
+                {selectedColor.traits.map((trait, index) => (
+                  <li key={index} className="flex items-start gap-2 text-sm">
+                    <span className="text-green-600 mt-0.5">✔</span>
+                    <span>{trait}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm font-medium text-mahogany-700 bg-mahogany-50 p-3 rounded-lg">
+                {selectedColor.closing}
+              </p>
+              
+              {/* Color Swatch */}
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Color Code</span>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-6 h-6 rounded border"
+                      style={{ backgroundColor: selectedColor.hex }}
+                    />
+                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {selectedColor.hex}
+                    </code>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <div className="px-6 pb-6">
+              <Button 
+                onClick={() => setSelectedColor(null)}
+                className="w-full bg-mahogany-600 hover:bg-mahogany-700"
+              >
+                Got it!
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     
   );
