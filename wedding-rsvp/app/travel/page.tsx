@@ -83,7 +83,7 @@ export default function TravelPage() {
                 <div>
                   <p className="font-medium text-sm text-sage-800">Route</p>
                   <p className="text-sm text-muted-foreground">
-                    Nakuru → Kericho → Kisumu → Mbita → Rusinga Island (via causeway)
+                    Nakuru → Kericho → Mbita → Rusinga Island (via causeway)
                   </p>
                 </div>
                 <Link href="https://maps.google.com/?q=Rusinga+Island+Lodge" target="_blank">

@@ -405,3 +405,389 @@ export async function deleteAdmin(
   if (error) throw error;
   return { success: true };
 }
+
+// ================================================
+// BUDGET MANAGEMENT FUNCTIONS
+// Add these to your lib/db.ts file
+// ================================================
+
+// ================================================
+// BUDGET OVERVIEW & SUMMARY
+// ================================================
+
+export async function getBudgetOverview() {
+  const { data, error } = await supabaseAdmin
+    .from('budget_overall_summary')
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error fetching budget overview:', error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function getCategorySummary() {
+  const { data, error } = await supabaseAdmin
+    .from('budget_category_summary')
+    .select('*')
+    .order('display_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching category summary:', error);
+    return [];
+  }
+
+  return data;
+}
+
+// ================================================
+// BUDGET CATEGORIES
+// ================================================
+
+export async function getAllCategories() {
+  const { data, error } = await supabaseAdmin
+    .from('budget_categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function createCategory(category: {
+  name: string;
+  description?: string;
+  allocated_amount: number;
+  color?: string;
+}) {
+  const { data, error } = await supabaseAdmin
+    .from('budget_categories')
+    .insert(category)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCategory(id: string, updates: any) {
+  const { data, error } = await supabaseAdmin
+    .from('budget_categories')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ================================================
+// VENDORS
+// ================================================
+
+export async function getAllVendors() {
+  const { data, error } = await supabaseAdmin
+    .from('vendors')
+    .select(`
+      *,
+      category:budget_categories(name, color)
+    `)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching vendors:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function getVendorById(id: string) {
+  const { data, error } = await supabaseAdmin
+    .from('vendors')
+    .select(`
+      *,
+      category:budget_categories(name, color),
+      payments:vendor_payments(*)
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching vendor:', error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function createVendor(vendor: {
+  category_id?: string;
+  name: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  description?: string;
+  contract_amount: number;
+  contract_date?: string;
+  payment_due_date?: string;
+  notes?: string;
+  created_by?: string;
+}) {
+  const { data, error } = await supabaseAdmin
+    .from('vendors')
+    .insert(vendor)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateVendor(id: string, updates: any) {
+  const { data, error } = await supabaseAdmin
+    .from('vendors')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteVendor(id: string) {
+  const { error } = await supabaseAdmin
+    .from('vendors')
+    .update({ is_active: false })
+    .eq('id', id);
+
+  if (error) throw error;
+  return { success: true };
+}
+
+// ================================================
+// VENDOR PAYMENTS
+// ================================================
+
+export async function getVendorPayments(vendorId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('vendor_payments')
+    .select('*')
+    .eq('vendor_id', vendorId)
+    .order('payment_date', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching vendor payments:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function createVendorPayment(payment: {
+  vendor_id: string;
+  amount: number;
+  payment_date: string;
+  payment_method?: string;
+  transaction_reference?: string;
+  notes?: string;
+  recorded_by?: string;
+}) {
+  const { data, error } = await supabaseAdmin
+    .from('vendor_payments')
+    .insert(payment)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ================================================
+// GUEST CONTRIBUTIONS
+// ================================================
+
+export async function getAllContributions() {
+  const { data, error } = await supabaseAdmin
+    .from('guest_contributions')
+    .select(`
+      *,
+      guest:guests(name, email, phone),
+      rsvp:rsvps(pledge_amount, pledge_fulfilled)
+    `)
+    .order('contribution_date', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching contributions:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function createContribution(contribution: {
+  guest_id: string;
+  rsvp_id: string;
+  amount: number;
+  contribution_date: string;
+  payment_method?: string;
+  transaction_reference?: string;
+  notes?: string;
+}) {
+  const { data, error } = await supabaseAdmin
+    .from('guest_contributions')
+    .insert(contribution)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function verifyContribution(
+  id: string, 
+  verifiedBy: string
+) {
+  const { data, error } = await supabaseAdmin
+    .from('guest_contributions')
+    .update({
+      verified: true,
+      verified_by: verifiedBy,
+      verified_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ================================================
+// BUDGET EXPENSES
+// ================================================
+
+export async function getAllExpenses() {
+  const { data, error } = await supabaseAdmin
+    .from('budget_expenses')
+    .select(`
+      *,
+      category:budget_categories(name, color)
+    `)
+    .order('expense_date', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching expenses:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function createExpense(expense: {
+  category_id?: string;
+  description: string;
+  amount: number;
+  expense_date: string;
+  payment_method?: string;
+  receipt_url?: string;
+  notes?: string;
+  recorded_by?: string;
+}) {
+  const { data, error } = await supabaseAdmin
+    .from('budget_expenses')
+    .insert(expense)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteExpense(id: string) {
+  const { error } = await supabaseAdmin
+    .from('budget_expenses')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return { success: true };
+}
+
+// ================================================
+// STATISTICS & REPORTS
+// ================================================
+
+export async function getVendorStats() {
+  const { data: vendors } = await supabaseAdmin
+    .from('vendors')
+    .select('payment_status')
+    .eq('is_active', true);
+
+  if (!vendors) return { pending: 0, partial: 0, paid: 0, total: 0 };
+
+  return {
+    pending: vendors.filter(v => v.payment_status === 'pending').length,
+    partial: vendors.filter(v => v.payment_status === 'partial').length,
+    paid: vendors.filter(v => v.payment_status === 'paid').length,
+    total: vendors.length
+  };
+}
+
+export async function getContributionStats() {
+  const { data: contributions } = await supabaseAdmin
+    .from('guest_contributions')
+    .select('amount, verified');
+
+  if (!contributions) return { total: 0, verified: 0, pending: 0 };
+
+  const verified = contributions.filter(c => c.verified);
+  const pending = contributions.filter(c => !c.verified);
+
+  return {
+    total: contributions.reduce((sum, c) => sum + Number(c.amount), 0),
+    verified: verified.reduce((sum, c) => sum + Number(c.amount), 0),
+    pending: pending.reduce((sum, c) => sum + Number(c.amount), 0),
+    count: contributions.length,
+    verifiedCount: verified.length,
+    pendingCount: pending.length
+  };
+}
+
+export async function getRecentActivity(limit = 10) {
+  // Get recent payments
+  const { data: payments } = await supabaseAdmin
+    .from('vendor_payments')
+    .select(`
+      *,
+      vendor:vendors(name)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  // Get recent contributions
+  const { data: contributions } = await supabaseAdmin
+    .from('guest_contributions')
+    .select(`
+      *,
+      guest:guests(name)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  return {
+    payments: payments || [],
+    contributions: contributions || []
+  };
+}

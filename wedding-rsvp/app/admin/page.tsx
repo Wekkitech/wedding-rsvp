@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Users, CheckCircle, XCircle, Clock, DollarSign, Download, Loader2, Mail, Lock, LogOut, Shield } from 'lucide-react';
 import EditRSVPModal from '@/components/EditRSVPModal';
 import DeleteGuestButton from '@/components/DeleteGuestButton';
+import React from 'react';
 
 interface RSVPData {
   id: string;
@@ -26,6 +27,101 @@ interface RSVPData {
     email: string;
     phone: string | null;
   };
+}
+
+function BudgetSummaryWidget() {
+  const [summary, setSummary] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    loadBudgetSummary();
+  }, []);
+
+  const loadBudgetSummary = async () => {
+    try {
+      const response = await fetch('/api/admin/budget/summary');
+      if (response.ok) {
+        const data = await response.json();
+        setSummary(data);
+      }
+    } catch (error) {
+      console.error('Failed to load budget summary:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p className="text-sm">Budget data not available</p>
+        <p className="text-xs mt-2">Click "Manage Budget" to set up your budget</p>
+      </div>
+    );
+  }
+
+  const percentageSpent = summary.total_budget 
+    ? (summary.total_spent / summary.total_budget) * 100 
+    : 0;
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Total Budget */}
+      <div className="text-center p-4 rounded-lg bg-blue-50 border border-blue-200">
+        <p className="text-xs text-blue-600 font-medium mb-1">Total Budget</p>
+        <p className="text-lg font-bold text-blue-700">
+          {formatCurrency(summary.total_budget)}
+        </p>
+      </div>
+
+      {/* Total Spent */}
+      <div className="text-center p-4 rounded-lg bg-red-50 border border-red-200">
+        <p className="text-xs text-red-600 font-medium mb-1">Spent</p>
+        <p className="text-lg font-bold text-red-700">
+          {formatCurrency(summary.total_spent)}
+        </p>
+        <p className="text-xs text-red-600 mt-1">
+          {percentageSpent.toFixed(1)}%
+        </p>
+      </div>
+
+      {/* Remaining */}
+      <div className="text-center p-4 rounded-lg bg-green-50 border border-green-200">
+        <p className="text-xs text-green-600 font-medium mb-1">Remaining</p>
+        <p className="text-lg font-bold text-green-700">
+          {formatCurrency(summary.total_remaining)}
+        </p>
+      </div>
+
+      {/* Contributions */}
+      <div className="text-center p-4 rounded-lg bg-purple-50 border border-purple-200">
+        <p className="text-xs text-purple-600 font-medium mb-1">Contributions</p>
+        <p className="text-lg font-bold text-purple-700">
+          {formatCurrency(summary.total_contributions || 0)}
+        </p>
+        <p className="text-xs text-purple-600 mt-1">
+          {summary.contributions_count || 0} verified
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminPage() {
@@ -55,7 +151,7 @@ export default function AdminPage() {
       const response = await fetch('/api/admin/auth/verify-session');
       if (response.ok) {
         const data = await response.json();
-        console.log('Session data:', data); // Debug log
+        console.log('Session data:', data);
         if (data.valid) {
           setEmail(data.email);
           setUserRole(data.role || 'event_planner');
@@ -126,7 +222,7 @@ export default function AdminPage() {
       });
 
       const data = await response.json();
-      console.log('OTP verify response:', data); // Debug log
+      console.log('OTP verify response:', data);
 
       if (response.ok) {
         setUserRole(data.role || 'event_planner');
@@ -376,6 +472,7 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
@@ -453,6 +550,30 @@ export default function AdminPage() {
           </Card>
         )}
 
+        {/* Budget Summary - Super Admin Only */}
+        {userRole === 'super_admin' && (
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                    Budget Overview
+                  </CardTitle>
+                  <CardDescription>Financial summary and tracking</CardDescription>
+                </div>
+                <Button onClick={() => router.push('/admin/budget')}>
+                  Manage Budget
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <BudgetSummaryWidget />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -494,6 +615,7 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
+        {/* Guest List Table */}
         <Card>
           <CardHeader>
             <CardTitle className="text-mahogany-800">Guest List ({filteredRSVPs.length})</CardTitle>
