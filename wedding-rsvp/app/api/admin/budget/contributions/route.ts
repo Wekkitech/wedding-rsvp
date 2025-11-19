@@ -74,6 +74,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
+    // Check if email exists
+    if (!email) {
+      return NextResponse.json({ error: 'Admin email not found in session' }, { status: 400 });
+    }
+
     const { id } = await request.json();
     if (!id) {
       return NextResponse.json({ error: 'Contribution ID required' }, { status: 400 });
