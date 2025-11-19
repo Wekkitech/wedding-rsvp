@@ -32,48 +32,144 @@ END:VCALENDAR`;
 }
 
 export function getMagicLinkEmailTemplate(name: string, loginUrl: string): string {
-  return `
-<!DOCTYPE html>
-<html>
+  const displayName = name || 'Guest';
+  const safeLoginUrl = loginUrl || '#';
+  
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your RSVP Login Link</title>
   <style>
-    body { font-family: 'Georgia', serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { text-align: center; padding: 30px 0; background: linear-gradient(135deg, #f6f8f6 0%, #fdfdfb 100%); border-radius: 8px; }
-    .content { background: white; padding: 30px; border: 1px solid #e3e9e3; border-radius: 8px; margin: 20px 0; }
-    .button { display: inline-block; background: #5f7a5f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-    .footer { text-align: center; color: #7d947d; font-size: 12px; padding: 20px 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6; 
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .container { 
+      max-width: 600px; 
+      margin: 20px auto; 
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header { 
+      text-align: center; 
+      padding: 40px 20px; 
+      background: linear-gradient(135deg, #f6f8f6 0%, #fdfdfb 100%);
+    }
+    .header h1 {
+      color: #5f7a5f;
+      margin: 0 0 10px 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .header p {
+      color: #7d947d;
+      margin: 0;
+      font-size: 16px;
+    }
+    .content { 
+      padding: 40px 30px;
+    }
+    .content p {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      color: #333;
+    }
+    .button-container {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .button { 
+      display: inline-block; 
+      background: #5f7a5f; 
+      color: #ffffff !important;
+      padding: 14px 40px; 
+      text-decoration: none; 
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .button:hover {
+      background: #4a6150;
+    }
+    .link-box {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+      word-break: break-all;
+    }
+    .link-box p {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+    }
+    .link-box a {
+      color: #5f7a5f;
+      text-decoration: none;
+    }
+    .footer { 
+      text-align: center; 
+      color: #7d947d; 
+      font-size: 12px; 
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    .footer p {
+      margin: 5px 0;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1 style="color: #5f7a5f; margin: 0;">Brill & Damaris</h1>
-      <p style="color: #7d947d; margin: 10px 0 0 0;">January 23, 2026</p>
+      <h1>Brill & Damaris</h1>
+      <p>January 23, 2026</p>
     </div>
     
     <div class="content">
-      <p>Hello${name ? ' ' + name : ''},</p>
+      <p>Hello ${displayName},</p>
       
-      <p>Click the button below to access your RSVP for our wedding:</p>
+      <p>You requested access to view and manage your RSVP for our wedding celebration.</p>
       
-      <div style="text-align: center;">
-        <a href="${loginUrl}" class="button">Access Your RSVP</a>
+      <p>Click the button below to securely access your RSVP:</p>
+      
+      <div class="button-container">
+        <a href="${safeLoginUrl}" class="button">Access Your RSVP</a>
       </div>
       
-      <p style="font-size: 14px; color: #666;">This link will expire in 24 hours. If you didn't request this, you can safely ignore this email.</p>
+      <div class="link-box">
+        <p><strong>Or copy and paste this link:</strong></p>
+        <p><a href="${safeLoginUrl}">${safeLoginUrl}</a></p>
+      </div>
       
-      <p style="margin-top: 30px;">With love,<br><strong>Brill & Damaris</strong></p>
+      <p style="font-size: 14px; color: #666; margin-top: 30px;">
+        <strong>🔒 Security Notice:</strong><br>
+        • This link will expire in 24 hours<br>
+        • Only use this link if you requested it<br>
+        • If you didn't request this, you can safely ignore this email
+      </p>
+      
+      <p style="margin-top: 30px;">
+        With love,<br>
+        <strong>Brill & Damaris</strong>
+      </p>
     </div>
     
     <div class="footer">
-      <p>Rusinga Island Lodge | January 23, 2026</p>
+      <p><strong>Rusinga Island Lodge | January 23, 2026</strong></p>
+      <p>We can't wait to celebrate with you!</p>
     </div>
   </div>
 </body>
-</html>
-  `;
+</html>`;
 }
 
 export function getRSVPConfirmationEmailTemplate(
@@ -81,29 +177,89 @@ export function getRSVPConfirmationEmailTemplate(
   attending: boolean,
   isWaitlisted: boolean
 ): string {
-  return `
-<!DOCTYPE html>
-<html>
+  const displayName = name || 'Guest';
+  
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RSVP Confirmation</title>
   <style>
-    body { font-family: 'Georgia', serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { text-align: center; padding: 30px 0; background: linear-gradient(135deg, #f6f8f6 0%, #fdfdfb 100%); border-radius: 8px; }
-    .content { background: white; padding: 30px; border: 1px solid #e3e9e3; border-radius: 8px; margin: 20px 0; }
-    .info-box { background: #f6f8f6; padding: 15px; border-radius: 6px; margin: 15px 0; }
-    .footer { text-align: center; color: #7d947d; font-size: 12px; padding: 20px 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6; 
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .container { 
+      max-width: 600px; 
+      margin: 20px auto; 
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header { 
+      text-align: center; 
+      padding: 40px 20px; 
+      background: linear-gradient(135deg, #f6f8f6 0%, #fdfdfb 100%);
+    }
+    .header h1 {
+      color: #5f7a5f;
+      margin: 0 0 10px 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .header p {
+      color: #7d947d;
+      margin: 0;
+      font-size: 16px;
+    }
+    .content { 
+      padding: 40px 30px;
+    }
+    .info-box { 
+      background: #f6f8f6; 
+      padding: 20px; 
+      border-radius: 6px; 
+      margin: 20px 0;
+      border-left: 4px solid #5f7a5f;
+    }
+    .info-box h3 {
+      margin-top: 0;
+      color: #5f7a5f;
+      font-size: 18px;
+    }
+    .info-box p {
+      margin: 8px 0;
+    }
+    .footer { 
+      text-align: center; 
+      color: #7d947d; 
+      font-size: 12px; 
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    li {
+      margin: 8px 0;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1 style="color: #5f7a5f; margin: 0;">Brill & Damaris</h1>
-      <p style="color: #7d947d; margin: 10px 0 0 0;">January 23, 2026</p>
+      <h1>Brill & Damaris</h1>
+      <p>January 23, 2026</p>
     </div>
     
     <div class="content">
-      <p>Dear ${name},</p>
+      <p>Dear ${displayName},</p>
       
       ${attending ? `
         ${isWaitlisted ? `
@@ -113,7 +269,7 @@ export function getRSVPConfirmationEmailTemplate(
           <p><strong>Thank you for confirming your attendance!</strong> We're thrilled you'll be joining us on our special day.</p>
           
           <div class="info-box">
-            <h3 style="margin-top: 0; color: #5f7a5f;">Event Details</h3>
+            <h3>Event Details</h3>
             <p><strong>Date:</strong> Friday, January 23, 2026</p>
             <p><strong>Ceremony:</strong> 11:00 AM - 1:00 PM</p>
             <p><strong>Reception:</strong> 1:30 PM - 4:30 PM</p>
@@ -123,9 +279,9 @@ export function getRSVPConfirmationEmailTemplate(
           
           <p><strong>What's Next:</strong></p>
           <ul>
-            <li>Add the event to your calendar (download link in your dashboard)</li>
             <li>Review travel and accommodation options on our website</li>
-            <li>Share your gift contribution via M-Pesa to KCB Till</li>
+            <li>Share your gift contribution via M-Pesa to KCB Till: 227116</li>
+            <li>Update your RSVP anytime before December 20th, 2025</li>
           </ul>
         `}
       ` : `
@@ -133,14 +289,16 @@ export function getRSVPConfirmationEmailTemplate(
         <p>We hope to celebrate with you another time.</p>
       `}
       
-      <p style="margin-top: 30px;">With love,<br><strong>Brill & Damaris</strong></p>
+      <p style="margin-top: 30px;">
+        With love,<br>
+        <strong>Brill & Damaris</strong>
+      </p>
     </div>
     
     <div class="footer">
-      <p>Rusinga Island Lodge | January 23, 2026</p>
+      <p><strong>Rusinga Island Lodge | January 23, 2026</strong></p>
     </div>
   </div>
 </body>
-</html>
-  `;
+</html>`;
 }

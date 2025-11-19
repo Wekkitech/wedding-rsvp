@@ -8,7 +8,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, name } = await request.json();
+
+    console.log('📧 Send link request for:', email, 'Name:', name);
 
     if (!email || !email.includes('@')) {
       return NextResponse.json(
@@ -33,17 +35,34 @@ export async function POST(request: NextRequest) {
     const token = await createMagicLink(email);
     const loginUrl = getMagicLinkUrl(token);
 
-    console.log('✅ Magic link for', email, ':', loginUrl);
+    console.log('🔗 Magic link generated for', email);
+    console.log('🔗 URL:', loginUrl);
+
+    // Get the name (from request or from database)
+    const guestName = name || invitedGuest.name || 'Guest';
+
+    // Generate email HTML
+    const emailHtml = getMagicLinkEmailTemplate(guestName, loginUrl);
+
+    console.log('📝 Email template generated, length:', emailHtml.length);
 
     // Send email
     try {
       await sendEmail({
         to: email,
         subject: 'Your RSVP Login Link - Brill & Damaris Wedding',
-        html: getMagicLinkEmailTemplate(invitedGuest.name || '', loginUrl),
+        html: emailHtml,
       });
 
-      console.log('✅ Email sent to:', email);
+      console.log('✅ Email sent successfully to:', email);
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Login link sent to your email!',
+        // In development, also return the link
+        ...(process.env.NODE_ENV === 'development' && { loginUrl })
+      });
+
     } catch (emailError: any) {
       console.error('❌ Email send failed:', emailError);
       
@@ -52,26 +71,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           success: true, 
           message: 'Dev mode: Email not sent but link generated',
-          loginUrl 
+          loginUrl,
+          error: emailError.message
         });
       }
       
       return NextResponse.json(
-        { error: 'Failed to send email' },
+        { error: 'Failed to send email. Please try again.' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Login link sent to your email!',
-      // In development, return the link
-      ...(process.env.NODE_ENV === 'development' && { loginUrl })
-    });
   } catch (error: any) {
-    console.error('Error sending magic link:', error);
+    console.error('❌ Send link error:', error);
     return NextResponse.json(
-      { error: 'Failed to send login link' },
+      { error: 'Failed to send login link', details: error.message },
       { status: 500 }
     );
   }

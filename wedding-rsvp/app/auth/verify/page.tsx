@@ -32,21 +32,33 @@ function VerifyContent() {
 
         const data = await response.json();
 
-        if (response.ok && data.success) {
+        if (response.ok && data.success && data.guest) {
           // Store guest info in localStorage
           localStorage.setItem('guest', JSON.stringify(data.guest));
+          
+          // IMPORTANT: Also store phone separately for backward compatibility
+          if (data.guest.phone) {
+            localStorage.setItem('verifiedPhone', data.guest.phone);
+          }
+          
+          // Store name if available
+          if (data.guest.name) {
+            localStorage.setItem('guestName', data.guest.name);
+          }
+          
           setStatus('success');
           setMessage('Login successful! Redirecting...');
           
-          // Redirect to RSVP page
+          // Redirect to profile page (not rsvp - they already have an RSVP)
           setTimeout(() => {
-            router.push('/rsvp');
+            router.push('/profile');
           }, 1500);
         } else {
           setStatus('error');
           setMessage(data.error || 'Invalid or expired link');
         }
       } catch (error) {
+        console.error('Verification error:', error);
         setStatus('error');
         setMessage('Failed to verify login link');
       }
@@ -74,8 +86,8 @@ function VerifyContent() {
           <p className="text-muted-foreground mb-6">{message}</p>
           
           {status === 'error' && (
-            <Link href="/login">
-              <Button className="w-full">Request New Link</Button>
+            <Link href="/verify-phone">
+              <Button className="w-full">Try Again</Button>
             </Link>
           )}
         </CardContent>
