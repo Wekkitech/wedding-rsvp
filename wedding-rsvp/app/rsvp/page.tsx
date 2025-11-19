@@ -1,3 +1,4 @@
+// app/rsvp/page.tsx
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -33,27 +34,45 @@ function RSVPForm() {
   });
 
   useEffect(() => {
-    // Check if user came from phone verification
-    const phoneFromStorage = typeof window !== 'undefined' ? localStorage.getItem('verifiedPhone') : null;
+    const isDeclined = searchParams.get('declined') === 'true';
     const nameFromStorage = typeof window !== 'undefined' ? localStorage.getItem('guestName') : null;
     const preAttending = typeof window !== 'undefined' ? localStorage.getItem('preAttending') : null;
-    const isDeclined = searchParams.get('declined') === 'true';
 
-    if (!phoneFromStorage) {
-      // No verified phone, redirect to phone verification
+    // Check for localStorage auth (phone verification) OR magic link login
+    const phoneFromStorage = typeof window !== 'undefined' ? localStorage.getItem('verifiedPhone') : null;
+    const guestData = typeof window !== 'undefined' ? localStorage.getItem('guest') : null;
+
+    if (!phoneFromStorage && !guestData) {
       router.push('/verify-phone');
       return;
     }
 
-    setVerifiedPhone(phoneFromStorage);
+    // If logged in via magic link, get phone from guest data
+    let finalPhone = phoneFromStorage;
+    if (!finalPhone && guestData) {
+      try {
+        const guest = JSON.parse(guestData);
+        finalPhone = guest.phone;
+      } catch (e) {
+        router.push('/verify-phone');
+        return;
+      }
+    }
+
+    if (!finalPhone) {
+      router.push('/verify-phone');
+      return;
+    }
+
+    setVerifiedPhone(finalPhone);
     setDeclined(isDeclined);
 
     // Pre-fill form data
     setFormData(prev => ({
       ...prev,
-      phone: phoneFromStorage,
+      phone: finalPhone,
       name: nameFromStorage || '',
-      attending: isDeclined ? 'no' : (preAttending === 'true' ? 'yes' : 'no'),
+      attending: isDeclined ? 'no' : (preAttending === 'true' ? 'yes' : 'yes'),
     }));
 
     // Fetch hotels

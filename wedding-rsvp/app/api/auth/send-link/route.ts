@@ -1,13 +1,14 @@
 import { createMagicLink, getMagicLinkUrl } from '@/lib/auth';
-import { createOrUpdateGuest, getGuestByEmail } from '@/lib/db';
+import { getGuestByEmail } from '@/lib/db';
 import { getMagicLinkEmailTemplate } from '@/lib/email-templates';
+import { sendEmail } from '@/lib/email';
 import { NextRequest, NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
 
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, name } = await request.json();
+    const { email } = await request.json();
 
     if (!email || !email.includes('@')) {
       return NextResponse.json(
@@ -16,8 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
- // INVITE-ONLY SYSTEM: Check if email is invited
-    // Only pre-invited guests in the database can request a magic link
+    // Check if email exists in guest list
     const invitedGuest = await getGuestByEmail(email);
     
     if (!invitedGuest) {
@@ -29,31 +29,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update guest info if provided
-    if (name) {
-      await createOrUpdateGuest(email, { name });
-    }
-
     // Generate magic link token
     const token = await createMagicLink(email);
     const loginUrl = getMagicLinkUrl(token);
 
-    // In production, you would send this via Resend/SendGrid
-    // For now, we'll return the URL (you can log it in development)
-    console.log('Magic link for', email, ':', loginUrl);
+    console.log('✅ Magic link for', email, ':', loginUrl);
 
-    // TODO: Uncomment when you have Resend API key
-    /*
-    const { Resend } = require('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    
-    await resend.emails.send({
-      from: 'wedding@brilldamaris.com',
-      to: email,
-      subject: 'Your RSVP Login Link - Brill & Damaris Wedding',
-      html: getMagicLinkEmailTemplate(name || '', loginUrl),
-    });
-    */
+    // Send email
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'Your RSVP Login Link - Brill & Damaris Wedding',
+        html: getMagicLinkEmailTemplate(invitedGuest.name || '', loginUrl),
+      });
+
+      console.log('✅ Email sent to:', email);
+    } catch (emailError: any) {
+      console.error('❌ Email send failed:', emailError);
+      
+      // In development, still return success with link
+      if (process.env.NODE_ENV === 'development') {
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Dev mode: Email not sent but link generated',
+          loginUrl 
+        });
+      }
+      
+      return NextResponse.json(
+        { error: 'Failed to send email' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
       // In development, return the link
       ...(process.env.NODE_ENV === 'development' && { loginUrl })
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending magic link:', error);
     return NextResponse.json(
       { error: 'Failed to send login link' },

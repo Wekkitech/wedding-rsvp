@@ -1,3 +1,4 @@
+// app/profile/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -39,16 +40,34 @@ export default function ProfilePage() {
     const now = new Date();
     setIsAfterDeadline(now > DEADLINE_DATE);
 
-    // Check for verified phone
+    // Check for localStorage auth (phone verification) OR magic link login
     const phone = localStorage.getItem('verifiedPhone');
-    
-    if (!phone) {
+    const guestData = localStorage.getItem('guest'); // From magic link login
+
+    if (!phone && !guestData) {
       router.push('/verify-phone');
       return;
     }
 
-    setVerifiedPhone(phone);
-    loadRSVP(phone);
+    // If logged in via magic link, get phone from guest data
+    let finalPhone = phone;
+    if (!finalPhone && guestData) {
+      try {
+        const guest = JSON.parse(guestData);
+        finalPhone = guest.phone;
+      } catch (e) {
+        router.push('/verify-phone');
+        return;
+      }
+    }
+
+    if (!finalPhone) {
+      router.push('/verify-phone');
+      return;
+    }
+
+    setVerifiedPhone(finalPhone);
+    loadRSVP(finalPhone);
     loadHotels();
   }, [router]);
 
