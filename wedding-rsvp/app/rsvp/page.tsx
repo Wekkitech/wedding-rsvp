@@ -21,6 +21,7 @@ function RSVPForm() {
   const [hotels, setHotels] = useState<any[]>([]);
   const [verifiedPhone, setVerifiedPhone] = useState('');
   const [declined, setDeclined] = useState(false);
+  const [attendanceDecided, setAttendanceDecided] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -149,7 +150,46 @@ function RSVPForm() {
     );
   }
 
-  // Show "declined" confirmation if they said no
+  // Step 1: Ask if they're attending
+  if (!attendanceDecided) {
+    return (
+      <div className="container mx-auto px-4 py-12 min-h-[80vh] flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-blush-100 flex items-center justify-center">
+              <Heart className="h-8 w-8 text-blush-600" fill="currentColor" />
+            </div>
+            <CardTitle>Will You Be Joining Us?</CardTitle>
+            <CardDescription>
+              Let us know if you'll be celebrating with us on January 23rd at Rusinga Island Lodge
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              onClick={() => setAttendanceDecided(true)}
+              className="w-full bg-blush-500 hover:bg-blush-600"
+              size="lg"
+            >
+              Yes, I'm Coming! 🎉
+            </Button>
+            <Button
+              onClick={() => {
+                setDeclined(true);
+                setAttendanceDecided(true);
+              }}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              No, I Can't Make It 💔
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Step 2: Show "declined" confirmation if they said no
   if (declined) {
     return (
       <div className="container mx-auto px-4 py-12 min-h-[80vh] flex items-center justify-center">
@@ -198,6 +238,18 @@ function RSVPForm() {
                 ) : (
                   'Submit Response'
                 )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-muted-foreground"
+                onClick={() => {
+                  setAttendanceDecided(false);
+                  setDeclined(false);
+                }}
+              >
+                Change Your Answer
               </Button>
             </form>
           </CardContent>
@@ -401,10 +453,21 @@ function RSVPForm() {
           </CardContent>
         </Card>
 
-        <div className="mt-6 wedding-card p-4">
+        <div className="mt-6 wedding-card p-4 space-y-4">
           <p className="text-sm text-muted-foreground text-center">
             <strong>Note:</strong> We have space for 70 guests. If we reach capacity, additional RSVPs will be waitlisted.
           </p>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full text-muted-foreground"
+            onClick={() => {
+              setAttendanceDecided(false);
+              setDeclined(false);
+            }}
+          >
+            Change Your Answer
+          </Button>
         </div>
       </div>
     </div>
