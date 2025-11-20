@@ -1,3 +1,4 @@
+//budget/category management page
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -84,7 +85,7 @@ export default function CategoryManagementPage() {
 
   const loadData = async () => {
     try {
-      const response = await fetch('/api/admin/budget/categories?summary=true');
+      const response = await fetch('/api/admin/budget/categories');
       const data = await response.json();
       setCategories(data.categories || []);
     } catch (error) {

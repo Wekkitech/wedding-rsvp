@@ -6,59 +6,64 @@ interface EmailOptions {
 }
 
 export async function sendEmail({ to, subject, html }: EmailOptions): Promise<void> {
-  // Production: Try to send via Resend first
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: process.env.EMAIL_FROM || 'noreply@wedding.brukhministries.co.ke',
-          to: [to],
-          subject,
-          html,
-        }),
-      });
+  console.log('\n📧 ===== EMAIL SEND REQUEST =====');
+  console.log('To:', to);
+  console.log('Subject:', subject);
+  console.log('From:', process.env.EMAIL_FROM);
+  console.log('Has API Key:', !!process.env.RESEND_API_KEY);
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Resend API error:', error);
-        throw new Error(`Resend API error: ${JSON.stringify(error)}`);
-      }
+  // Check if we have API key
+  if (!process.env.RESEND_API_KEY) {
+    console.error('❌ NO RESEND API KEY CONFIGURED');
+    throw new Error('Resend API key not configured');
+  }
 
-      console.log('✅ Email sent successfully via Resend to:', to);
-      return;
-    } catch (error) {
-      console.error('❌ Resend email error:', error);
-      
-      // In development, fall back to console logging
-      if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ Email send failed, logging to console instead');
-        console.log('=== EMAIL (Development Mode - Fallback) ===');
-        console.log('To:', to);
-        console.log('Subject:', subject);
-        console.log('================================');
-        return; // Don't throw error in dev
-      }
-      
-      throw error; // Throw in production
+  try {
+    const payload = {
+      from: process.env.EMAIL_FROM || 'noreply@resend.dev',
+      to: to, // Send as string, not array
+      subject,
+      html,
+    };
+
+    console.log('📤 Sending to Resend...');
+    console.log('Payload:', {
+      from: payload.from,
+      to: payload.to,
+      subject: payload.subject,
+      htmlLength: payload.html.length,
+    });
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    console.log('📥 Resend Response Status:', response.status);
+    console.log('📥 Resend Response Headers:', Object.fromEntries(response.headers.entries()));
+
+    const responseData = await response.json();
+    console.log('📥 Resend Response Body:', responseData);
+
+    if (!response.ok) {
+      console.error('❌ RESEND API ERROR:', responseData);
+      throw new Error(`Resend API error (${response.status}): ${JSON.stringify(responseData)}`);
     }
-  }
 
-  // Development mode fallback: Log to console
-  if (process.env.NODE_ENV === 'development') {
-    console.log('=== EMAIL (Development Mode - No Resend) ===');
-    console.log('To:', to);
-    console.log('Subject:', subject);
-    console.log('================================');
-    return;
+    console.log('✅ EMAIL SENT SUCCESSFULLY');
+    console.log('Email ID:', responseData.id);
+    console.log('===== EMAIL SEND COMPLETE =====\n');
+    
+  } catch (error) {
+    console.error('❌ EMAIL SEND FAILED');
+    console.error('Error:', error instanceof Error ? error.message : error);
+    console.error('===== EMAIL SEND FAILED =====\n');
+    throw error; // Always throw so caller knows it failed
   }
-
-  // No email service configured
-  throw new Error('No email service configured');
 }
 
 export function isValidEmail(email: string): boolean {

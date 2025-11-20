@@ -1,3 +1,4 @@
+//budget/vendors page
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -713,6 +714,22 @@ export default function VendorManagementPage() {
                   onChange={(e) => setVendorForm({ ...vendorForm, email: e.target.value })}
                 />
               </div>
+
+              <div className="col-span-2">
+  <Label htmlFor="edit-category">Category</Label>
+  <Select value={vendorForm.category_id} onValueChange={(value) => setVendorForm({ ...vendorForm, category_id: value })}>
+    <SelectTrigger>
+      <SelectValue placeholder="Select category" />
+    </SelectTrigger>
+    <SelectContent>
+      {categories.map((cat) => (
+        <SelectItem key={cat.id} value={cat.id}>
+          {cat.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
 
               <div className="col-span-2">
                 <Label htmlFor="edit-notes">Notes</Label>

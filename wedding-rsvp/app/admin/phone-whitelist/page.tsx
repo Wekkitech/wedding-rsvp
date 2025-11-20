@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { Phone, Plus, Trash2, Loader2, Upload } from 'lucide-react';
+import { Phone, Plus, Trash2, Loader2, Upload, Edit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface WhitelistEntry {
@@ -25,6 +25,8 @@ export default function PhoneWhitelistPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     phone: '',
@@ -70,6 +72,35 @@ export default function PhoneWhitelistPage() {
 
   const resetForm = () => {
     setFormData({ phone: '', name: '', notes: '' });
+    setEditingId(null);
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === entries.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(entries.map(e => e.id)));
+    }
+  };
+
+  const openEditDialog = (entry: WhitelistEntry) => {
+    setFormData({
+      phone: entry.phone,
+      name: entry.name || '',
+      notes: entry.notes || '',
+    });
+    setEditingId(entry.id);
+    setDialogOpen(true);
   };
 
   const handleSubmit = async () => {
@@ -94,10 +125,11 @@ export default function PhoneWhitelistPage() {
 
     try {
       const response = await fetch('/api/admin/phone-whitelist', {
-        method: 'POST',
+        method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adminEmail,
+          id: editingId,
           phone: formData.phone,
           name: formData.name || null,
           notes: formData.notes || null,
@@ -109,7 +141,7 @@ export default function PhoneWhitelistPage() {
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Phone number added to whitelist",
+          description: editingId ? "Phone number updated" : "Phone number added to whitelist",
         });
         setDialogOpen(false);
         resetForm();
@@ -117,7 +149,7 @@ export default function PhoneWhitelistPage() {
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to add phone number",
+          description: data.error || (editingId ? "Failed to update phone number" : "Failed to add phone number"),
           variant: "destructive",
         });
       }
@@ -172,6 +204,46 @@ export default function PhoneWhitelistPage() {
         toast({
           title: "Error",
           description: data.error || "Failed to add phone numbers",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.size} phone number(s) from whitelist?`)) return;
+
+    try {
+      const response = await fetch('/api/admin/phone-whitelist', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          adminEmail, 
+          ids: Array.from(selectedIds)
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `Deleted ${selectedIds.size} phone number(s)`,
+        });
+        setSelectedIds(new Set());
+        loadWhitelist();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to delete phone numbers",
           variant: "destructive",
         });
       }
@@ -263,7 +335,7 @@ export default function PhoneWhitelistPage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-wrap gap-3 mb-6">
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
             if (!open) resetForm();
@@ -276,9 +348,9 @@ export default function PhoneWhitelistPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Phone Number</DialogTitle>
+                <DialogTitle>{editingId ? 'Edit Phone Number' : 'Add Phone Number'}</DialogTitle>
                 <DialogDescription>
-                  Add a guest phone number to the whitelist
+                  {editingId ? 'Update the guest phone number details' : 'Add a guest phone number to the whitelist'}
                 </DialogDescription>
               </DialogHeader>
 
@@ -321,7 +393,7 @@ export default function PhoneWhitelistPage() {
                   Cancel
                 </Button>
                 <Button onClick={handleSubmit} className="bg-mahogany-600 hover:bg-mahogany-700">
-                  Add to Whitelist
+                  {editingId ? 'Update' : 'Add to Whitelist'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -369,6 +441,17 @@ export default function PhoneWhitelistPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {selectedIds.size > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={handleBulkDelete}
+              className="ml-auto"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete {selectedIds.size} Selected
+            </Button>
+          )}
         </div>
 
         {/* Whitelist Table */}
@@ -391,6 +474,15 @@ export default function PhoneWhitelistPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-bronze-100">
+                      <th className="text-left p-3 text-sm font-semibold w-12">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedIds.size === entries.length && entries.length > 0}
+                          onChange={toggleSelectAll}
+                          className="cursor-pointer w-4 h-4 rounded border-gray-300"
+                          aria-label="Select all"
+                        />
+                      </th>
                       <th className="text-left p-3 text-sm font-semibold">Phone</th>
                       <th className="text-left p-3 text-sm font-semibold">Name</th>
                       <th className="text-left p-3 text-sm font-semibold">Notes</th>
@@ -400,14 +492,34 @@ export default function PhoneWhitelistPage() {
                   </thead>
                   <tbody>
                     {entries.map((entry) => (
-                      <tr key={entry.id} className="border-b border-bronze-50 hover:bg-bronze-50/50">
+                      <tr 
+                        key={entry.id} 
+                        className={`border-b border-bronze-50 hover:bg-bronze-50/50 ${selectedIds.has(entry.id) ? 'bg-blue-50' : ''}`}
+                      >
+                        <td className="p-3">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedIds.has(entry.id)}
+                            onChange={() => toggleSelection(entry.id)}
+                            className="cursor-pointer w-4 h-4 rounded border-gray-300"
+                            aria-label={`Select ${entry.phone}`}
+                          />
+                        </td>
                         <td className="p-3 text-sm font-mono">{entry.phone}</td>
                         <td className="p-3 text-sm">{entry.name || '-'}</td>
                         <td className="p-3 text-sm text-muted-foreground">{entry.notes || '-'}</td>
                         <td className="p-3 text-sm text-muted-foreground">
                           {new Date(entry.created_at).toLocaleDateString()}
                         </td>
-                        <td className="p-3">
+                        <td className="p-3 flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(entry)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"

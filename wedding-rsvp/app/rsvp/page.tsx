@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Heart, Loader2, CheckCircle } from 'lucide-react';
+import { getRSVPConfirmationEmailTemplate } from '@/lib/email-templates';
+import { sendEmailAction } from '@/lib/send-email-action';
 
 function RSVPForm() {
   const router = useRouter();
@@ -107,6 +109,46 @@ function RSVPForm() {
       const data = await response.json();
 
       if (response.ok) {
+        // If they're attending and have an email, send confirmation email
+        if (formData.attending === 'yes' && formData.email) {
+          try {
+            const htmlContent = getRSVPConfirmationEmailTemplate(
+              formData.name,
+              true, // attending
+              data.rsvp?.is_waitlisted || false, // isWaitlisted
+              formData.hotel_choice || undefined, // hotelChoice
+              formData.dietary_needs || undefined, // dietaryRestrictions
+              formData.pledge_amount ? parseInt(formData.pledge_amount) : undefined // pledgeAmount
+            );
+await sendEmailAction({
+  to: formData.email,
+  subject: 'Your RSVP Confirmed - Brill & Damaris Wedding',
+  html: htmlContent
+});
+
+            console.log('✅ Confirmation email sent to:', formData.email);
+          } catch (emailError) {
+            console.error('Email sending failed (non-critical):', emailError);
+            // Don't fail the RSVP if email fails - it's optional
+          }
+        }
+        // If they declined and have email, send confirmation
+        else if (formData.attending === 'no' && formData.email) {
+          try {
+            const htmlContent = getRSVPConfirmationEmailTemplate(
+              formData.name,
+              false, // attending
+              false // isWaitlisted (not applicable for declined)
+            );
+
+
+            console.log('✅ Confirmation email sent to:', formData.email);
+          } catch (emailError) {
+            console.error('Email sending failed (non-critical):', emailError);
+            // Don't fail the RSVP if email fails - it's optional
+          }
+        }
+
         toast({
           title: "RSVP Saved!",
           description: data.rsvp?.is_waitlisted 
@@ -218,6 +260,22 @@ function RSVPForm() {
                 />
               </div>
 
+              {/* Email (Optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email (Optional)</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="your@email.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional - for confirmation email
+                </p>
+              </div>
+
+              {/* Note field - optional message for couple */}
               <div className="space-y-2">
                 <Label htmlFor="note">Message for the Couple (Optional)</Label>
                 <Textarea
@@ -225,7 +283,7 @@ function RSVPForm() {
                   placeholder="Share your well wishes..."
                   value={formData.note}
                   onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                  rows={4}
+                  rows={3}
                 />
               </div>
 
@@ -236,20 +294,8 @@ function RSVPForm() {
                     Saving...
                   </span>
                 ) : (
-                  'Submit Response'
+                  'Submit'
                 )}
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full text-muted-foreground"
-                onClick={() => {
-                  setAttendanceDecided(false);
-                  setDeclined(false);
-                }}
-              >
-                Change Your Answer
               </Button>
             </form>
           </CardContent>
@@ -258,18 +304,10 @@ function RSVPForm() {
     );
   }
 
+  // Step 3: Show full RSVP form for those attending
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <Heart className="h-10 w-10 text-blush-500 mx-auto mb-4" fill="currentColor" />
-          <h1 className="text-4xl font-serif text-sage-800 mb-2">Complete Your RSVP</h1>
-          <p className="text-muted-foreground">
-            We can't wait to celebrate with you! Please fill out the details below.
-          </p>
-        </div>
-
-        {/* Important Notices */}
+    <div className="min-h-screen">
+      <div className="container mx-auto px-4 py-12">
         <div className="mb-6 space-y-3">
           <Card className="border-sage-200 bg-sage-50/30">
             <CardContent className="p-4">
@@ -319,7 +357,7 @@ function RSVPForm() {
                   placeholder="your@email.com"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Optional - for sending updates about the wedding
+                  Optional - we'll send your RSVP confirmation here
                 </p>
               </div>
 

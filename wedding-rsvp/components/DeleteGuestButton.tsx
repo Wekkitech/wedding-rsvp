@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +24,7 @@ interface DeleteGuestButtonProps {
   onSuccess: () => void;
 }
 
-export default function DeleteGuestButton({
+function DeleteGuestButton({
   guestId,
   guestName,
   guestEmail,
@@ -37,24 +39,25 @@ export default function DeleteGuestButton({
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/admin/guests/${guestId}?email=${adminEmail}`, {
+      const encodedEmail = encodeURIComponent(adminEmail);
+      const url = `/api/admin/guests/${guestId}?email=${encodedEmail}`;
+
+      const response = await fetch(url, {
         method: 'DELETE',
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Show toast FIRST
         toast({
           title: '✅ Guest Deleted',
           description: data.message || 'Guest has been successfully removed.',
         });
         
-        // Small delay before closing dialog and refreshing
         setTimeout(() => {
           setIsOpen(false);
           onSuccess();
-        }, 100);
+        }, 500);
       } else {
         toast({
           title: 'Delete Failed',
@@ -128,3 +131,5 @@ export default function DeleteGuestButton({
     </AlertDialog>
   );
 }
+
+export default DeleteGuestButton;
