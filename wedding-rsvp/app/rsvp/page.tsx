@@ -24,6 +24,8 @@ function RSVPForm() {
   const [verifiedPhone, setVerifiedPhone] = useState('');
   const [declined, setDeclined] = useState(false);
   const [attendanceDecided, setAttendanceDecided] = useState(false);
+  const [guestName, setGuestName] = useState<string | null>(null);
+  const [loadingGuest, setLoadingGuest] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -69,6 +71,33 @@ function RSVPForm() {
 
     setVerifiedPhone(finalPhone);
     setDeclined(isDeclined);
+
+    // ✨ NEW: Fetch guest name from whitelist
+    const fetchGuestName = async () => {
+      try {
+        setLoadingGuest(true);
+        const response = await fetch(`/api/check-phone-whitelist?phone=${encodeURIComponent(finalPhone)}`);
+        const data = await response.json();
+        
+        console.log('Whitelist response:', data);
+        
+        // Handle the response format: { allowed: true, guest: { phone, name } }
+        if (data.allowed && data.guest && data.guest.name) {
+          console.log('✅ Found guest name:', data.guest.name);
+          setGuestName(data.guest.name);
+          // Also store it for later
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('guestName', data.guest.name);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch guest name:', error);
+      } finally {
+        setLoadingGuest(false);
+      }
+    };
+
+    fetchGuestName();
 
     // Pre-fill form data
     setFormData(prev => ({
@@ -120,11 +149,11 @@ function RSVPForm() {
               formData.dietary_needs || undefined, // dietaryRestrictions
               formData.pledge_amount ? parseInt(formData.pledge_amount) : undefined // pledgeAmount
             );
-await sendEmailAction({
-  to: formData.email,
-  subject: 'Your RSVP Confirmed - Brill & Damaris Wedding',
-  html: htmlContent
-});
+            await sendEmailAction({
+              to: formData.email,
+              subject: 'Your RSVP Confirmed - Brill & Damaris Wedding',
+              html: htmlContent
+            });
 
             console.log('✅ Confirmation email sent to:', formData.email);
           } catch (emailError) {
@@ -141,6 +170,11 @@ await sendEmailAction({
               false // isWaitlisted (not applicable for declined)
             );
 
+            await sendEmailAction({
+              to: formData.email,
+              subject: 'Your RSVP - Brill & Damaris Wedding',
+              html: htmlContent
+            });
 
             console.log('✅ Confirmation email sent to:', formData.email);
           } catch (emailError) {
@@ -201,9 +235,15 @@ await sendEmailAction({
             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-blush-100 flex items-center justify-center">
               <Heart className="h-8 w-8 text-blush-600" fill="currentColor" />
             </div>
-            <CardTitle>Will You Be Joining Us?</CardTitle>
+            {/* ✨ PERSONALIZED GREETING WITH GUEST NAME */}
+            <CardTitle>
+              {guestName ? `Hello ${guestName}! 👋` : 'Will You Be Joining Us?'}
+            </CardTitle>
             <CardDescription>
-              Let us know if you'll be celebrating with us on January 23rd at Rusinga Island Lodge
+              {guestName 
+                ? "Let us know if you'll be celebrating with us on January 23rd at Rusinga Island Lodge"
+                : 'Let us know if you will be celebrating with us on January 23rd at Rusinga Island Lodge'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -240,7 +280,7 @@ await sendEmailAction({
             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-blush-100 flex items-center justify-center">
               <Heart className="h-8 w-8 text-blush-600" />
             </div>
-            <CardTitle>We'll Miss You!</CardTitle>
+            <CardTitle>We'll Miss You{guestName ? `, ${guestName}` : ''}!</CardTitle>
             <CardDescription>
               Thank you for letting us know
             </CardDescription>
@@ -327,7 +367,7 @@ await sendEmailAction({
 
         <Card>
           <CardHeader>
-            <CardTitle>Your Details</CardTitle>
+            <CardTitle>{guestName ? `Thanks for Confirming, ${guestName}!` : 'Your Details'}</CardTitle>
             <CardDescription>
               Phone: {verifiedPhone} (verified ✓)
             </CardDescription>
