@@ -7,10 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Users, CheckCircle, XCircle, Clock, DollarSign, Download, Loader2, Mail, Lock, LogOut, Shield } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Clock, DollarSign, Download, Loader2, Mail, Lock, LogOut, Shield, MessageSquare, Eye } from 'lucide-react';
 import EditRSVPModal from '@/components/EditRSVPModal';
 import DeleteGuestButton from '@/components/DeleteGuestButton';
 import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface RSVPData {
   id: string;
@@ -27,6 +35,97 @@ interface RSVPData {
     email: string;
     phone: string | null;
   };
+}
+
+// Message Viewer Modal Component
+function MessageViewerModal({ rsvp }: { rsvp: RSVPData }) {
+  const hasMessage = rsvp.note && rsvp.note.trim().length > 0;
+  const hasDietary = rsvp.dietary_needs && rsvp.dietary_needs.trim().length > 0;
+  const hasAny = hasMessage || hasDietary;
+
+  if (!hasAny) {
+    return (
+      <Button variant="ghost" size="sm" disabled className="text-muted-foreground">
+        <MessageSquare className="h-4 w-4 mr-1" />
+        No message
+      </Button>
+    );
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1">
+          <Eye className="h-4 w-4" />
+          View
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-mahogany-600" />
+            Message from {rsvp.guest.name}
+          </DialogTitle>
+          <DialogDescription>
+            {rsvp.guest.email} • {new Date(rsvp.created_at).toLocaleDateString()}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-4">
+          {/* Message for the Couple */}
+          {hasMessage && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-mahogany-700 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Message for the Couple
+              </h3>
+              <div className="p-4 bg-sage-50 border border-sage-200 rounded-lg">
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {rsvp.note}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Dietary Requirements */}
+          {hasDietary && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-mahogany-700">
+                Dietary Requirements
+              </h3>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {rsvp.dietary_needs}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Additional Info */}
+          <div className="pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-muted-foreground">Status:</span>
+                <span className="ml-2">
+                  {rsvp.is_waitlisted ? (
+                    <span className="text-amber-600 font-medium">Waitlisted</span>
+                  ) : rsvp.attending ? (
+                    <span className="text-green-600 font-medium">Attending</span>
+                  ) : (
+                    <span className="text-red-600 font-medium">Declined</span>
+                  )}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium text-muted-foreground">Hotel:</span>
+                <span className="ml-2">{rsvp.hotel_choice?.replace(/_/g, ' ') || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function BudgetSummaryWidget() {
@@ -222,21 +321,19 @@ export default function AdminPage() {
       });
 
       const data = await response.json();
-      console.log('OTP verify response:', data);
 
       if (response.ok) {
         setUserRole(data.role || 'event_planner');
         setStep('authenticated');
-        toast({
-          title: 'Login Successful!',
-          description: `Welcome ${data.role === 'super_admin' ? 'Super Admin' : 'Event Planner'}!`,
-        });
-        
         loadDashboard(email);
+        toast({
+          title: 'Success!',
+          description: 'Welcome to the admin dashboard',
+        });
       } else {
         toast({
-          title: 'Invalid Code',
-          description: data.error || 'Please check your code and try again',
+          title: 'Error',
+          description: data.error || 'Invalid OTP',
           variant: 'destructive',
         });
       }
@@ -251,24 +348,6 @@ export default function AdminPage() {
     }
   };
 
-  const loadDashboard = async (adminEmail: string) => {
-    try {
-      const response = await fetch(`/api/admin/rsvps?email=${adminEmail}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setRsvps(data.rsvps);
-        setStats(data.stats);
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load dashboard data',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await fetch('/api/admin/auth/logout', { method: 'POST' });
@@ -276,43 +355,55 @@ export default function AdminPage() {
       setEmail('');
       setOtp('');
       setRsvps([]);
-      setUserRole('event_planner');
       toast({
         title: 'Logged Out',
-        description: 'You have been logged out successfully',
-      });
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
-  const handleExportCSV = async () => {
-    try {
-      const response = await fetch(`/api/admin/rsvps?email=${email}&format=csv`);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `wedding-rsvps-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: 'Export Successful',
-        description: 'RSVPs exported to CSV file.',
+        description: 'Successfully logged out',
       });
     } catch (error) {
       toast({
-        title: 'Export Failed',
-        description: 'Failed to export RSVPs.',
+        title: 'Error',
+        description: 'Failed to logout',
         variant: 'destructive',
       });
     }
   };
 
-  const refreshRSVPs = () => loadDashboard(email);
+  const loadDashboard = async (adminEmail: string) => {
+    try {
+      const response = await fetch(`/api/admin/rsvps?email=${encodeURIComponent(adminEmail)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setRsvps(data.rsvps || []);
+        calculateStats(data.rsvps || []);
+      }
+    } catch (error) {
+      console.error('Failed to load dashboard:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load RSVPs',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const calculateStats = (rsvpData: RSVPData[]) => {
+    const attending = rsvpData.filter(r => r.attending && !r.is_waitlisted).length;
+    const declined = rsvpData.filter(r => !r.attending).length;
+    const waitlisted = rsvpData.filter(r => r.is_waitlisted).length;
+    const totalPledges = rsvpData.reduce((sum, r) => sum + (r.pledge_amount || 0), 0);
+
+    setStats({
+      total: rsvpData.length,
+      attending,
+      declined,
+      waitlisted,
+      totalPledges
+    });
+  };
+
+  const refreshRSVPs = () => {
+    loadDashboard(email);
+  };
 
   const filteredRSVPs = rsvps.filter(rsvp => {
     if (filter === 'all') return true;
@@ -322,166 +413,190 @@ export default function AdminPage() {
     return true;
   });
 
-  if (step !== 'authenticated') {
+  const handleExportCSV = () => {
+    const headers = [
+      'Name',
+      'Email', 
+      'Phone',
+      'Status',
+      'Hotel',
+      'Message',
+      'Dietary Needs',
+      ...(userRole === 'super_admin' ? ['Pledge Amount'] : []),
+      'RSVP Date'
+    ];
+
+    const rows = filteredRSVPs.map(rsvp => [
+      rsvp.guest.name || 'N/A',
+      rsvp.guest.email,
+      rsvp.guest.phone || 'N/A',
+      rsvp.is_waitlisted ? 'Waitlisted' : rsvp.attending ? 'Attending' : 'Declined',
+      rsvp.hotel_choice?.replace(/_/g, ' ') || 'N/A',
+      rsvp.note ? `"${rsvp.note.replace(/"/g, '""')}"` : 'N/A',
+      rsvp.dietary_needs ? `"${rsvp.dietary_needs.replace(/"/g, '""')}"` : 'N/A',
+      ...(userRole === 'super_admin' ? [rsvp.pledge_amount || '0'] : []),
+      new Date(rsvp.created_at).toLocaleDateString()
+    ]);
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rsvp-list-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Login UI
+  if (step === 'email') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sage-50 to-blush-50 p-4">
+      <div className="container mx-auto px-4 py-12 min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">
-              {step === 'email' ? '🔐 Admin Login' : '📧 Enter Code'}
-            </CardTitle>
-            <CardDescription>
-              {step === 'email' 
-                ? 'Enter your admin email to receive a login code' 
-                : 'Check your email for the 6-digit code'}
-            </CardDescription>
+            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-mahogany-100 flex items-center justify-center">
+              <Lock className="h-8 w-8 text-mahogany-600" />
+            </div>
+            <CardTitle className="text-mahogany-800">Admin Login</CardTitle>
+            <CardDescription>Enter your admin email to receive a verification code</CardDescription>
           </CardHeader>
           <CardContent>
-            {step === 'email' ? (
-              <form onSubmit={handleRequestOTP} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Admin Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="admin@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending Code...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="mr-2 h-4 w-4" />
-                      Send Login Code
-                    </>
-                  )}
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOTP} className="space-y-4">
-                <div className="text-sm text-center text-muted-foreground mb-4">
-                  Code sent to <strong>{email}</strong>
-                </div>
-
-                <div>
-                  <Label htmlFor="otp">6-Digit Code</Label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    placeholder="000000"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    maxLength={6}
-                    required
-                    disabled={loading}
-                    className="text-center text-2xl tracking-widest"
-                    autoFocus
-                  />
-                </div>
-
-                <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="mr-2 h-4 w-4" />
-                      Verify & Login
-                    </>
-                  )}
-                </Button>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep('email');
-                      setOtp('');
-                    }}
-                    disabled={loading}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    ← Use different email
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleRequestOTP}
-                    disabled={loading}
-                    className="text-sm text-blue-600 hover:text-blue-700"
-                  >
-                    Resend Code
-                  </button>
-                </div>
-
-                <p className="text-xs text-center text-muted-foreground mt-4">
-                  Code expires in 10 minutes • Max 5 attempts
-                </p>
-              </form>
-            )}
+            <form onSubmit={handleRequestOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending Code...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Verification Code
+                  </>
+                )}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-serif text-mahogany-800 mb-2">Admin Dashboard</h1>
-            <div className="flex items-center gap-3">
-              <p className="text-bronze-600">
-                Manage RSVPs and guest list • Logged in as {email}
-              </p>
-              <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                userRole === 'super_admin' 
-                  ? 'bg-purple-100 text-purple-700 border border-purple-300' 
-                  : 'bg-blue-100 text-blue-700 border border-blue-300'
-              }`}>
-                {userRole === 'super_admin' ? '👑 Super Admin' : '📋 Event Planner'}
-              </span>
+  if (step === 'otp') {
+    return (
+      <div className="container mx-auto px-4 py-12 min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-mahogany-100 flex items-center justify-center">
+              <Shield className="h-8 w-8 text-mahogany-600" />
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {userRole === 'super_admin' && (
-              <Button 
-                variant="outline" 
-                onClick={() => router.push('/admin/manage-admins')}
+            <CardTitle className="text-mahogany-800">Enter Verification Code</CardTitle>
+            <CardDescription>
+              We sent a 6-digit code to <strong>{email}</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="otp">6-Digit Code</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  placeholder="123456"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  required
+                  maxLength={6}
+                  disabled={loading}
+                  className="text-center text-2xl tracking-widest"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify & Login'
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setStep('email')}
+                disabled={loading}
               >
-                <Shield className="mr-2 h-4 w-4" />
+                Back to Email
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Dashboard UI
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-mahogany-800 mb-2">Wedding RSVP Dashboard</h1>
+          <p className="text-muted-foreground">
+            {userRole === 'super_admin' ? '🔑 Super Admin' : '👔 Event Planner'} • {email}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {userRole === 'super_admin' && (
+            <>
+              <Button variant="outline" onClick={() => router.push('/admin/manage-admins')}>
+                <Shield className="h-4 w-4 mr-2" />
                 Manage Admins
               </Button>
-            )}
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
+              <Button variant="outline" onClick={() => router.push('/admin/phone-whitelist')}>
+                <Users className="h-4 w-4 mr-2" />
+                Phone Whitelist
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/admin/hotels')}>
+                Hotels
+              </Button>
+            </>
+          )}
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
         </div>
+      </div>
 
+      <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-mahogany-100 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-mahogany-600" />
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-mahogany-600">{stats.total}</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
                   <p className="text-xs text-muted-foreground">Total RSVPs</p>
                 </div>
               </div>
@@ -619,6 +734,7 @@ export default function AdminPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-mahogany-800">Guest List ({filteredRSVPs.length})</CardTitle>
+            <CardDescription>Click "View" to see full messages and dietary requirements</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -630,6 +746,7 @@ export default function AdminPage() {
                     <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Phone</th>
                     <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Status</th>
                     <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Hotel</th>
+                    <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Message</th>
                     {userRole === 'super_admin' && (
                       <th className="text-left p-3 text-sm font-semibold text-mahogany-800">Pledge</th>
                     )}
@@ -659,6 +776,9 @@ export default function AdminPage() {
                       </td>
                       <td className="p-3 text-sm text-muted-foreground">
                         {rsvp.hotel_choice?.replace(/_/g, ' ') || 'N/A'}
+                      </td>
+                      <td className="p-3">
+                        <MessageViewerModal rsvp={rsvp} />
                       </td>
                       {userRole === 'super_admin' && (
                         <td className="p-3 text-sm font-medium text-mahogany-700">
