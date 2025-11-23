@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { Phone, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { normalizePhoneNumber, formatPhoneNumber, isValidKenyanPhone } from '@/lib/phone-utils';
 
 export default function PhoneVerifyPage() {
   const { toast } = useToast();
@@ -22,26 +23,29 @@ export default function PhoneVerifyPage() {
     setLoading(true);
     setError('');
 
-    // Validate phone format
-    const phoneRegex = /^\+2547[0-9]{8}$/;
-    if (!phoneRegex.test(phone)) {
-      setError("❌ Invalid phone format. Please use: +2547XXXXXXXX");
+    // Validate phone format using flexible validation
+    if (!isValidKenyanPhone(phone)) {
+      setError("⛔ Invalid phone number. Please enter a valid Kenyan mobile number (07XXXXXXXX or +2547XXXXXXXX)");
       toast({
         title: "Invalid Phone Number",
-        description: "Please use format: +2547XXXXXXXX",
+        description: "Please enter a valid Kenyan mobile number",
         variant: "destructive",
       });
       setLoading(false);
       return;
     }
 
+    // Normalize the phone number for API calls
+    const normalizedPhone = normalizePhoneNumber(phone);
+    const formattedPhone = formatPhoneNumber(normalizedPhone!);
+
     try {
       // Step 1: Check if phone is whitelisted
-      const whitelistResponse = await fetch(`/api/check-phone-whitelist?phone=${encodeURIComponent(phone)}`);
+      const whitelistResponse = await fetch(`/api/check-phone-whitelist?phone=${encodeURIComponent(formattedPhone)}`);
       const whitelistData = await whitelistResponse.json();
 
       if (!whitelistData.allowed) {
-        setError("📵 Phone number not found in guest list. Please contact the couple if you believe this is an error.");
+        setError("🔵 Phone number not found in guest list. Please contact the couple if you believe this is an error.");
         toast({
           title: "Phone Not Found",
           description: "This phone number is not on our guest list.",
@@ -52,7 +56,7 @@ export default function PhoneVerifyPage() {
       }
 
       // Step 2: Check if they have an existing RSVP with email
-      const rsvpResponse = await fetch(`/api/rsvp?phone=${encodeURIComponent(phone)}`);
+      const rsvpResponse = await fetch(`/api/rsvp?phone=${encodeURIComponent(formattedPhone)}`);
       const rsvpData = await rsvpResponse.json();
 
       if (rsvpData.rsvp && rsvpData.rsvp.guest?.email) {
@@ -83,8 +87,8 @@ export default function PhoneVerifyPage() {
         }
       } else {
         // New guest - redirect to RSVP form
-        // Store phone temporarily for RSVP form
-        localStorage.setItem('verifiedPhone', phone);
+        // Store normalized phone temporarily for RSVP form
+        localStorage.setItem('verifiedPhone', formattedPhone);
         localStorage.setItem('guestName', whitelistData.guest?.name || '');
         
         toast({
@@ -95,7 +99,7 @@ export default function PhoneVerifyPage() {
         window.location.href = '/rsvp';
       }
     } catch (error: any) {
-      setError("❌ " + (error.message || "Something went wrong. Please try again."));
+      setError("⛔ " + (error.message || "Something went wrong. Please try again."));
       toast({
         title: "Error",
         description: error.message || "Failed to process request",
@@ -173,18 +177,17 @@ export default function PhoneVerifyPage() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+2547XXXXXXXX"
+                placeholder="0712345678 or +254712345678"
                 value={phone}
                 onChange={(e) => {
                   setPhone(e.target.value);
                   setError('');
                 }}
                 required
-                pattern="^\+2547[0-9]{8}$"
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground">
-                Format: +2547XXXXXXXX (Kenyan mobile number)
+                Accepts: 07XXXXXXXX, 7XXXXXXXX, 2547XXXXXXXX, or +2547XXXXXXXX
               </p>
               
               {error && (

@@ -1,6 +1,7 @@
 // app/api/check-phone-whitelist/route.ts
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { normalizePhoneNumber } from '@/lib/phone-utils';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
@@ -16,36 +17,44 @@ export async function GET(request: Request) {
     );
   }
 
+  // Normalize the phone number to last 9 digits
+  const normalizedPhone = normalizePhoneNumber(phone);
+  
+  if (!normalizedPhone) {
+    return NextResponse.json(
+      { error: 'Invalid phone number format', allowed: false },
+      { status: 400 }
+    );
+  }
+
+  console.log('Normalized phone:', normalizedPhone);
+
   try {
-    // Check if phone exists in whitelist
-    const { data, error } = await supabaseAdmin
+    // Check if phone exists in whitelist using normalized format
+    // We'll check against the last 9 digits of stored numbers
+    const { data: allWhitelist, error: fetchError } = await supabaseAdmin
       .from('phone_whitelist')
-      .select('phone, name')
-      .eq('phone', phone)
-      .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors when not found
+      .select('phone, name');
 
-    console.log('Whitelist check result:', { data, error });
-
-    if (error) {
-      console.error('Error checking phone whitelist:', error);
-      // Don't return error for PGRST116 (not found), just say not allowed
-      if (error.code === 'PGRST116') {
-        return NextResponse.json({
-          allowed: false,
-          message: 'Phone number not found in guest list'
-        });
-      }
+    if (fetchError) {
+      console.error('Error fetching whitelist:', fetchError);
       return NextResponse.json(
         { error: 'Database error', allowed: false },
         { status: 500 }
       );
     }
 
-    if (data) {
-      console.log('Phone is whitelisted:', data);
+    // Find matching phone by comparing normalized versions
+    const match = allWhitelist?.find(entry => {
+      const storedNormalized = normalizePhoneNumber(entry.phone);
+      return storedNormalized === normalizedPhone;
+    });
+
+    if (match) {
+      console.log('Phone is whitelisted:', match);
       return NextResponse.json({
         allowed: true,
-        guest: data
+        guest: match
       });
     } else {
       console.log('Phone not found in whitelist');

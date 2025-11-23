@@ -1,6 +1,7 @@
 // app/api/admin/phone-whitelist/route.ts
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { normalizePhoneNumber, formatPhoneNumber } from '@/lib/phone-utils';
 export const dynamic = 'force-dynamic';
 
 // GET - List all whitelisted phones
@@ -64,13 +65,28 @@ export async function POST(request: Request) {
     }
 
     if (bulk && phones) {
-      // Bulk add
-      const phonesToInsert = phones.map((entry: any) => ({
-        phone: entry.phone,
-        name: entry.name || null,
-        notes: entry.notes || null,
-        added_by: adminEmail
-      }));
+      // Bulk add - normalize all phone numbers
+      const phonesToInsert = phones
+        .map((entry: any) => {
+          const normalized = normalizePhoneNumber(entry.phone);
+          if (!normalized) {
+            console.warn(`Skipping invalid phone: ${entry.phone}`);
+            return null;
+          }
+          return {
+            phone: formatPhoneNumber(normalized), // Store in consistent format
+            name: entry.name || null,
+            notes: entry.notes || null,
+            added_by: adminEmail
+          };
+        })
+        .filter(Boolean); // Remove null entries
+
+      if (phonesToInsert.length === 0) {
+        return NextResponse.json({ 
+          error: 'No valid phone numbers provided' 
+        }, { status: 400 });
+      }
 
       const { data, error } = await supabaseAdmin
         .from('phone_whitelist')
@@ -92,21 +108,38 @@ export async function POST(request: Request) {
           admin_email: adminEmail,
           action: 'BULK_ADD',
           table_name: 'phone_whitelist',
-          new_values: { count: data?.length || 0 }
+          new_values: { 
+            count: data?.length || 0,
+            attempted: phones.length,
+            successful: phonesToInsert.length 
+          }
         });
 
-      return NextResponse.json({ success: true, added: data?.length || 0 });
+      return NextResponse.json({ 
+        success: true, 
+        added: data?.length || 0,
+        skipped: phones.length - phonesToInsert.length
+      });
     } else {
-      // Single add
+      // Single add - normalize phone number
       if (!phone) {
         return NextResponse.json({ error: 'Phone required' }, { status: 400 });
       }
+
+      const normalized = normalizePhoneNumber(phone);
+      if (!normalized) {
+        return NextResponse.json({ 
+          error: 'Invalid phone number format' 
+        }, { status: 400 });
+      }
+
+      const formattedPhone = formatPhoneNumber(normalized);
 
       const { data, error } = await supabaseAdmin
         .from('phone_whitelist')
         .upsert(
           {
-            phone,
+            phone: formattedPhone, // Store in consistent format
             name: name || null,
             notes: notes || null,
             added_by: adminEmail
