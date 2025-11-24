@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import PhotoSlider from "@/components/PhotoSlider";
 import { useToast } from "@/hooks/use-toast";
+import MessagesCarousel from "@/components/MessagesCarousel";
 
 // Color data for dress code selector
 const dressCodeColors = [
@@ -372,6 +373,37 @@ export default function Home() {
         <h2 className="section-title text-center mb-8">Our Moments</h2>
         <PhotoSlider photos={galleryPhotos} />
       </section>
+
+      {/* Words of Love - Guest Messages */}
+<section className="mb-16 py-12 bg-gradient-to-b from-transparent via-rose-50/20 to-transparent">
+  <div className="text-center mb-10">
+    <h2 className="section-title flex items-center justify-center gap-3 text-mahogany-800">
+      <Heart className="h-6 w-6 text-rose-500 fill-current animate-pulse" />
+      Love Notes
+      <Heart className="h-6 w-6 text-rose-500 fill-current animate-pulse" />
+    </h2>
+    <p className="text-bronze-700 max-w-2xl mx-auto mt-4 text-sm sm:text-base">
+      Your heartfelt wishes mean the world to us. Thank you for sharing in our joy! 💕
+    </p>
+  </div>
+  
+  <MessagesCarousel />
+  
+  <div className="text-center mt-8">
+    <p className="text-sm text-bronze-600 mb-4">
+      Want to share your love and wishes?
+    </p>
+    <Link href="/rsvp">
+      <Button 
+        variant="outline" 
+        className="gap-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400"
+      >
+        <Heart className="h-4 w-4" />
+        Send Your Message
+      </Button>
+    </Link>
+  </div>
+</section>
 
       {/* Important Information */}
       <section className="mb-16">
