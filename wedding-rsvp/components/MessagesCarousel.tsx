@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Heart, Quote, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, Quote } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface Message {
@@ -15,14 +15,14 @@ export default function MessagesCarousel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchMessages();
   }, []);
 
-  // Auto-advance carousel - FIXED VERSION
+  // Auto-advance carousel every 10 seconds
   useEffect(() => {
     // Clear any existing timer
     if (timerRef.current) {
@@ -34,15 +34,27 @@ export default function MessagesCarousel() {
       return;
     }
 
-    // Set up the interval
+    // Set up the interval for 10 seconds
     timerRef.current = setInterval(() => {
       console.log('Auto-advancing carousel...');
-      setCurrentIndex((prevIndex) => {
-        const nextIndex = (prevIndex + 1) % messages.length;
-        console.log(`Auto-advance: ${prevIndex} → ${nextIndex} (of ${messages.length} messages)`);
-        return nextIndex;
-      });
-    }, 5000);
+      
+      // Start transition
+      setIsTransitioning(true);
+      
+      // Wait for fade out, then change message
+      setTimeout(() => {
+        setCurrentIndex((prevIndex) => {
+          const nextIndex = (prevIndex + 1) % messages.length;
+          console.log(`Auto-advance: ${prevIndex} → ${nextIndex} (of ${messages.length} messages)`);
+          return nextIndex;
+        });
+        
+        // Fade back in
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50);
+      }, 600);
+    }, 10000); // Changed to 10 seconds
 
     // Cleanup
     return () => {
@@ -50,7 +62,7 @@ export default function MessagesCarousel() {
         clearInterval(timerRef.current);
       }
     };
-  }, [messages.length]); // Only depend on messages.length, NOT currentIndex
+  }, [messages.length]);
 
   const fetchMessages = async () => {
     try {
@@ -67,46 +79,6 @@ export default function MessagesCarousel() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const nextMessage = () => {
-    if (isAnimating || messages.length === 0) return;
-    
-    console.log('👉 Manual next button clicked');
-    setIsAnimating(true);
-    
-    setCurrentIndex((prev) => {
-      const next = (prev + 1) % messages.length;
-      console.log(`Manual next: ${prev} → ${next}`);
-      return next;
-    });
-    
-    setTimeout(() => setIsAnimating(false), 500);
-  };
-
-  const previousMessage = () => {
-    if (isAnimating || messages.length === 0) return;
-    
-    console.log('👈 Manual previous button clicked');
-    setIsAnimating(true);
-    
-    setCurrentIndex((prev) => {
-      const previous = (prev - 1 + messages.length) % messages.length;
-      console.log(`Manual previous: ${prev} → ${previous}`);
-      return previous;
-    });
-    
-    setTimeout(() => setIsAnimating(false), 500);
-  };
-
-  const goToMessage = (index: number) => {
-    if (isAnimating || index === currentIndex) return;
-    
-    console.log(`🎯 Jumping to message ${index + 1}`);
-    setIsAnimating(true);
-    setCurrentIndex(index);
-    
-    setTimeout(() => setIsAnimating(false), 500);
   };
 
   if (loading) {
@@ -145,14 +117,20 @@ export default function MessagesCarousel() {
 
       <Card className="border-2 border-rose-200 bg-gradient-to-br from-rose-50 via-white to-pink-50 shadow-xl">
         <CardContent className="p-8 md:p-12">
-          <div className="relative">
+          <div className="relative min-h-[200px] flex items-center justify-center">
             {/* Opening Quote */}
             <Quote className="h-12 w-12 text-rose-300 absolute -left-4 -top-4 rotate-180" />
             
-            {/* Message Content */}
+            {/* Message Content with Smooth Transition */}
             <div 
-              key={currentIndex} // Force re-render on index change
-              className="transition-opacity duration-500 ease-in-out"
+              className={`
+                w-full
+                transition-all duration-700 ease-in-out
+                ${isTransitioning 
+                  ? 'opacity-0 transform scale-95' 
+                  : 'opacity-100 transform scale-100'
+                }
+              `}
             >
               <p className="text-lg md:text-xl text-gray-700 leading-relaxed mb-6 italic font-serif text-center px-8 whitespace-pre-wrap">
                 "{currentMessage.message}"
@@ -173,56 +151,10 @@ export default function MessagesCarousel() {
             {/* Closing Quote */}
             <Quote className="h-12 w-12 text-rose-300 absolute -right-4 -bottom-4" />
           </div>
-
-          {/* Navigation - Only show if there are multiple messages */}
-          {messages.length > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <button
-                onClick={previousMessage}
-                disabled={isAnimating}
-                className="p-2 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Previous message"
-                title="Previous message"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-
-              {/* Dots Indicator */}
-              <div className="flex gap-2">
-                {messages.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => goToMessage(index)}
-                    disabled={isAnimating}
-                    className={`
-                      h-2 rounded-full transition-all duration-300 disabled:cursor-not-allowed
-                      ${index === currentIndex 
-                        ? 'w-8 bg-rose-500' 
-                        : 'w-2 bg-rose-300 hover:bg-rose-400'
-                      }
-                    `}
-                    aria-label={`Go to message ${index + 1}`}
-                    aria-current={index === currentIndex ? 'true' : 'false'}
-                    title={`Message ${index + 1}`}
-                  />
-                ))}
-              </div>
-
-              <button
-                onClick={nextMessage}
-                disabled={isAnimating}
-                className="p-2 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Next message"
-                title="Next message"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Add floating animation */}
+      {/* Floating animation styles */}
       <style jsx>{`
         @keyframes float {
           0%, 100% {
@@ -233,7 +165,7 @@ export default function MessagesCarousel() {
           }
         }
         .animate-float {
-          animation: float 5s ease-in-out infinite;
+          animation: float 3s ease-in-out infinite;
         }
       `}</style>
     </div>
