@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ interface HotelData {
 }
 
 export default function HotelsManagementPage() {
+  const router = useRouter();
   const { toast } = useToast();
   
   // State
@@ -32,8 +34,7 @@ export default function HotelsManagementPage() {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<HotelData | null>(null);
-  const [adminEmail, setAdminEmail] = useState<string | null>(null); // ✅ State instead of direct read
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -46,19 +47,28 @@ export default function HotelsManagementPage() {
     description: '',
   });
 
-  // ✅ Initialize once on mount
+  // Authentication check - runs once on mount
   useEffect(() => {
-    const storedEmail = localStorage.getItem('adminEmail');
-    if (storedEmail) {
+    const checkAuth = async () => {
+      // Small delay to ensure localStorage is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const storedEmail = localStorage.getItem('adminEmail');
+      
+      if (!storedEmail) {
+        // Not logged in - redirect to admin login
+        router.push('/admin');
+        return;
+      }
+      
+      // Authenticated - load data
       setAdminEmail(storedEmail);
-      setIsAuthenticated(true);
-      loadHotels(storedEmail); // Pass email directly
-    } else {
-      setLoading(false);
-    }
-  }, []); // Empty array = run only once
+      loadHotels(storedEmail);
+    };
 
-  // ✅ Accept email parameter to avoid closure issues
+    checkAuth();
+  }, [router]);
+
   const loadHotels = async (email?: string) => {
     const emailToUse = email || adminEmail;
     if (!emailToUse) return;
@@ -274,28 +284,7 @@ export default function HotelsManagementPage() {
     }
   };
 
-  // ✅ Authentication check
-  if (!isAuthenticated && !loading) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="text-mahogany-800">Authentication Required</CardTitle>
-            <CardDescription>Please login as admin to access this page</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => window.location.href = '/admin'}
-              className="w-full bg-mahogany-600 hover:bg-mahogany-700"
-            >
-              Go to Admin Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+  // Show loading while checking auth and loading data
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[80vh]">
