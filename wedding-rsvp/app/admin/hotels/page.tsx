@@ -26,13 +26,10 @@ interface HotelData {
 
 export default function HotelsManagementPage() {
   const { toast } = useToast();
-  
-  // State
   const [hotels, setHotels] = useState<HotelData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<HotelData | null>(null);
-  const [adminEmail, setAdminEmail] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -45,24 +42,28 @@ export default function HotelsManagementPage() {
     description: '',
   });
 
-  // Simple authentication check - no redirects
-  useEffect(() => {
-    const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('adminEmail') : null;
-    if (storedEmail) {
-      setAdminEmail(storedEmail);
-      loadHotels(storedEmail);
-    } else {
-      setLoading(false);
+  // Get admin email from localStorage when needed
+  const getAdminEmail = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('adminEmail');
     }
+    return null;
+  };
+
+  useEffect(() => {
+    loadHotels();
   }, []);
 
-  const loadHotels = async (email?: string) => {
-    const emailToUse = email || adminEmail;
-    if (!emailToUse) return;
+  const loadHotels = async () => {
+    const adminEmail = getAdminEmail();
+    if (!adminEmail) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/hotels?email=${emailToUse}`);
+      const response = await fetch(`/api/admin/hotels?email=${adminEmail}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -115,6 +116,8 @@ export default function HotelsManagementPage() {
   };
 
   const handleSubmit = async () => {
+    const adminEmail = getAdminEmail();
+    
     if (!formData.name || !formData.price_min) {
       toast({
         title: "Validation Error",
@@ -170,6 +173,8 @@ export default function HotelsManagementPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
+    const adminEmail = getAdminEmail();
+    
     if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
 
     try {
@@ -204,6 +209,8 @@ export default function HotelsManagementPage() {
   };
 
   const handleToggleActive = async (hotel: HotelData) => {
+    const adminEmail = getAdminEmail();
+    
     try {
       const response = await fetch('/api/admin/hotels', {
         method: 'PUT',
@@ -232,6 +239,7 @@ export default function HotelsManagementPage() {
   };
 
   const handleReorder = async (hotel: HotelData, direction: 'up' | 'down') => {
+    const adminEmail = getAdminEmail();
     const currentIndex = hotels.findIndex(h => h.id === hotel.id);
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     
@@ -240,7 +248,6 @@ export default function HotelsManagementPage() {
     const targetHotel = hotels[targetIndex];
 
     try {
-      // Swap display orders
       await fetch('/api/admin/hotels', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -271,7 +278,6 @@ export default function HotelsManagementPage() {
     }
   };
 
-  // Show loading while checking auth and loading data
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[80vh]">
@@ -280,38 +286,14 @@ export default function HotelsManagementPage() {
     );
   }
 
-  // Show message if not authenticated (but don't redirect)
-  if (!adminEmail) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="text-mahogany-800">Authentication Required</CardTitle>
-            <CardDescription>Please login as admin to access this page</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => window.location.href = '/admin'}
-              className="w-full bg-mahogany-600 hover:bg-mahogany-700"
-            >
-              Go to Admin Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-serif text-mahogany-800 mb-2">Hotel Management</h1>
           <p className="text-bronze-600">Manage accommodation options for your guests</p>
         </div>
 
-        {/* Stats */}
         <div className="grid md:grid-cols-3 gap-4 mb-6">
           <Card>
             <CardContent className="p-6">
@@ -354,7 +336,6 @@ export default function HotelsManagementPage() {
           </Card>
         </div>
 
-        {/* Add Hotel Button */}
         <div className="mb-6">
           <Dialog open={editDialogOpen} onOpenChange={(open) => {
             setEditDialogOpen(open);
@@ -477,7 +458,6 @@ export default function HotelsManagementPage() {
           </Dialog>
         </div>
 
-        {/* Hotels List */}
         <Card>
           <CardHeader>
             <CardTitle>Hotels ({hotels.length})</CardTitle>
@@ -498,7 +478,6 @@ export default function HotelsManagementPage() {
                   <Card key={hotel.id} className={hotel.is_active ? 'border-bronze-200' : 'border-gray-200 opacity-60'}>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
-                        {/* Reorder Buttons */}
                         <div className="flex flex-col gap-1">
                           <Button
                             variant="ghost"
@@ -520,7 +499,6 @@ export default function HotelsManagementPage() {
                           </Button>
                         </div>
 
-                        {/* Hotel Info */}
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-2">
                             <div>

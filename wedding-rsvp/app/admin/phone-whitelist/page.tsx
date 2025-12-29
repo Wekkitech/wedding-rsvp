@@ -21,15 +21,12 @@ interface WhitelistEntry {
 
 export default function PhoneWhitelistPage() {
   const { toast } = useToast();
-  
-  // State
   const [entries, setEntries] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [adminEmail, setAdminEmail] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     phone: '',
@@ -39,24 +36,28 @@ export default function PhoneWhitelistPage() {
 
   const [bulkData, setBulkData] = useState('');
 
-  // Simple authentication check - no redirects
-  useEffect(() => {
-    const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('adminEmail') : null;
-    if (storedEmail) {
-      setAdminEmail(storedEmail);
-      loadWhitelist(storedEmail);
-    } else {
-      setLoading(false);
+  // Get admin email from localStorage
+  const getAdminEmail = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('adminEmail');
     }
+    return null;
+  };
+
+  useEffect(() => {
+    loadWhitelist();
   }, []);
 
-  const loadWhitelist = async (email?: string) => {
-    const emailToUse = email || adminEmail;
-    if (!emailToUse) return;
+  const loadWhitelist = async () => {
+    const adminEmail = getAdminEmail();
+    if (!adminEmail) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/phone-whitelist?email=${emailToUse}`);
+      const response = await fetch(`/api/admin/phone-whitelist?email=${adminEmail}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -113,6 +114,8 @@ export default function PhoneWhitelistPage() {
   };
 
   const handleSubmit = async () => {
+    const adminEmail = getAdminEmail();
+    
     if (!formData.phone) {
       toast({
         title: "Validation Error",
@@ -122,7 +125,6 @@ export default function PhoneWhitelistPage() {
       return;
     }
 
-    // Validate phone format
     if (!/^\+2547[0-9]{8}$/.test(formData.phone)) {
       toast({
         title: "Invalid Format",
@@ -172,6 +174,8 @@ export default function PhoneWhitelistPage() {
   };
 
   const handleBulkAdd = async () => {
+    const adminEmail = getAdminEmail();
+    
     if (!bulkData.trim()) {
       toast({
         title: "Validation Error",
@@ -181,7 +185,6 @@ export default function PhoneWhitelistPage() {
       return;
     }
 
-    // Parse bulk data (format: phone,name,notes per line)
     const lines = bulkData.trim().split('\n');
     const phones = lines.map(line => {
       const [phone, name, notes] = line.split(',').map(s => s.trim());
@@ -226,6 +229,7 @@ export default function PhoneWhitelistPage() {
   };
 
   const handleBulkDelete = async () => {
+    const adminEmail = getAdminEmail();
     if (selectedIds.size === 0) return;
     
     if (!confirm(`Delete ${selectedIds.size} phone number(s) from whitelist?`)) return;
@@ -266,6 +270,7 @@ export default function PhoneWhitelistPage() {
   };
 
   const handleDelete = async (id: string, phone: string) => {
+    const adminEmail = getAdminEmail();
     if (!confirm(`Remove ${phone} from whitelist?`)) return;
 
     try {
@@ -299,7 +304,6 @@ export default function PhoneWhitelistPage() {
     }
   };
 
-  // Show loading while checking auth and loading data
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[80vh]">
@@ -308,38 +312,14 @@ export default function PhoneWhitelistPage() {
     );
   }
 
-  // Show message if not authenticated (but don't redirect)
-  if (!adminEmail) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="text-mahogany-800">Authentication Required</CardTitle>
-            <CardDescription>Please login as admin to access this page</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => window.location.href = '/admin'}
-              className="w-full bg-mahogany-600 hover:bg-mahogany-700"
-            >
-              Go to Admin Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-serif text-mahogany-800 mb-2">Phone Whitelist</h1>
           <p className="text-bronze-600">Manage guest phone numbers (70 max capacity)</p>
         </div>
 
-        {/* Stats */}
         <div className="grid md:grid-cols-2 gap-4 mb-6">
           <Card>
             <CardContent className="p-6">
@@ -366,7 +346,6 @@ export default function PhoneWhitelistPage() {
           </Card>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 mb-6">
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
@@ -486,7 +465,6 @@ export default function PhoneWhitelistPage() {
           )}
         </div>
 
-        {/* Whitelist Table */}
         <Card>
           <CardHeader>
             <CardTitle>Whitelisted Numbers ({entries.length})</CardTitle>
