@@ -26,10 +26,14 @@ interface HotelData {
 
 export default function HotelsManagementPage() {
   const { toast } = useToast();
+  
+  // State
   const [hotels, setHotels] = useState<HotelData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<HotelData | null>(null);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null); // ✅ State instead of direct read
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -42,18 +46,26 @@ export default function HotelsManagementPage() {
     description: '',
   });
 
-  const adminEmail = typeof window !== 'undefined' ? localStorage.getItem('adminEmail') : null;
-
+  // ✅ Initialize once on mount
   useEffect(() => {
-    loadHotels();
-  }, []);
+    const storedEmail = localStorage.getItem('adminEmail');
+    if (storedEmail) {
+      setAdminEmail(storedEmail);
+      setIsAuthenticated(true);
+      loadHotels(storedEmail); // Pass email directly
+    } else {
+      setLoading(false);
+    }
+  }, []); // Empty array = run only once
 
-  const loadHotels = async () => {
-    if (!adminEmail) return;
+  // ✅ Accept email parameter to avoid closure issues
+  const loadHotels = async (email?: string) => {
+    const emailToUse = email || adminEmail;
+    if (!emailToUse) return;
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/hotels?email=${adminEmail}`);
+      const response = await fetch(`/api/admin/hotels?email=${emailToUse}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -261,6 +273,28 @@ export default function HotelsManagementPage() {
       });
     }
   };
+
+  // ✅ Authentication check
+  if (!isAuthenticated && !loading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="text-mahogany-800">Authentication Required</CardTitle>
+            <CardDescription>Please login as admin to access this page</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => window.location.href = '/admin'}
+              className="w-full bg-mahogany-600 hover:bg-mahogany-700"
+            >
+              Go to Admin Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

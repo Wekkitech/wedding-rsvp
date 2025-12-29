@@ -21,12 +21,16 @@ interface WhitelistEntry {
 
 export default function PhoneWhitelistPage() {
   const { toast } = useToast();
+  
+  // State
   const [entries, setEntries] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null); // ✅ State instead of direct read
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const [formData, setFormData] = useState({
     phone: '',
@@ -36,18 +40,26 @@ export default function PhoneWhitelistPage() {
 
   const [bulkData, setBulkData] = useState('');
 
-  const adminEmail = typeof window !== 'undefined' ? localStorage.getItem('adminEmail') : null;
-
+  // ✅ Initialize once on mount
   useEffect(() => {
-    loadWhitelist();
-  }, []);
+    const storedEmail = localStorage.getItem('adminEmail');
+    if (storedEmail) {
+      setAdminEmail(storedEmail);
+      setIsAuthenticated(true);
+      loadWhitelist(storedEmail); // Pass email directly
+    } else {
+      setLoading(false);
+    }
+  }, []); // Empty array = run only once
 
-  const loadWhitelist = async () => {
-    if (!adminEmail) return;
+  // ✅ Accept email parameter to avoid closure issues
+  const loadWhitelist = async (email?: string) => {
+    const emailToUse = email || adminEmail;
+    if (!emailToUse) return;
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/phone-whitelist?email=${adminEmail}`);
+      const response = await fetch(`/api/admin/phone-whitelist?email=${emailToUse}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -289,6 +301,28 @@ export default function PhoneWhitelistPage() {
       });
     }
   };
+
+  // ✅ Authentication check
+  if (!isAuthenticated && !loading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="text-mahogany-800">Authentication Required</CardTitle>
+            <CardDescription>Please login as admin to access this page</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => window.location.href = '/admin'}
+              className="w-full bg-mahogany-600 hover:bg-mahogany-700"
+            >
+              Go to Admin Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
