@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Phone, Plus, Trash2, Loader2, Upload, Edit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -50,14 +50,16 @@ export default function PhoneWhitelistPage() {
 
   const loadWhitelist = async () => {
     const adminEmail = getAdminEmail();
+    
     if (!adminEmail) {
+      console.log('No admin email found in localStorage');
       setLoading(false);
       return;
     }
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/phone-whitelist?email=${adminEmail}`);
+      const response = await fetch(`/api/admin/phone-whitelist?email=${encodeURIComponent(adminEmail)}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -70,6 +72,7 @@ export default function PhoneWhitelistPage() {
         });
       }
     } catch (error) {
+      console.error('Failed to load whitelist:', error);
       toast({
         title: "Error",
         description: "Failed to load whitelist",
@@ -115,6 +118,15 @@ export default function PhoneWhitelistPage() {
 
   const handleSubmit = async () => {
     const adminEmail = getAdminEmail();
+    
+    if (!adminEmail) {
+      toast({
+        title: "Not Logged In",
+        description: "Please login at /admin first",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!formData.phone) {
       toast({
@@ -165,6 +177,7 @@ export default function PhoneWhitelistPage() {
         });
       }
     } catch (error) {
+      console.error('Submit error:', error);
       toast({
         title: "Error",
         description: "Something went wrong",
@@ -175,6 +188,15 @@ export default function PhoneWhitelistPage() {
 
   const handleBulkAdd = async () => {
     const adminEmail = getAdminEmail();
+    
+    if (!adminEmail) {
+      toast({
+        title: "Not Logged In",
+        description: "Please login at /admin first",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!bulkData.trim()) {
       toast({
@@ -220,6 +242,7 @@ export default function PhoneWhitelistPage() {
         });
       }
     } catch (error) {
+      console.error('Bulk add error:', error);
       toast({
         title: "Error",
         description: "Something went wrong",
@@ -230,6 +253,7 @@ export default function PhoneWhitelistPage() {
 
   const handleBulkDelete = async () => {
     const adminEmail = getAdminEmail();
+    
     if (selectedIds.size === 0) return;
     
     if (!confirm(`Delete ${selectedIds.size} phone number(s) from whitelist?`)) return;
@@ -271,6 +295,7 @@ export default function PhoneWhitelistPage() {
 
   const handleDelete = async (id: string, phone: string) => {
     const adminEmail = getAdminEmail();
+    
     if (!confirm(`Remove ${phone} from whitelist?`)) return;
 
     try {
@@ -308,6 +333,37 @@ export default function PhoneWhitelistPage() {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-mahogany-600" />
+      </div>
+    );
+  }
+
+  // Check if user is logged in
+  const adminEmail = getAdminEmail();
+  if (!adminEmail) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="text-mahogany-800">Login Required</CardTitle>
+            <CardDescription>
+              You need to login as admin to manage phone whitelist
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Please login at the admin page first. If you just logged in, try running this in the browser console:
+            </p>
+            <code className="block p-3 bg-gray-100 rounded text-xs">
+              localStorage.setItem('adminEmail', 'your@email.com')
+            </code>
+            <Button 
+              onClick={() => window.location.href = '/admin'}
+              className="w-full bg-mahogany-600 hover:bg-mahogany-700"
+            >
+              Go to Admin Login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

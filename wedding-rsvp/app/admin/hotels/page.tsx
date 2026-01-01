@@ -42,7 +42,7 @@ export default function HotelsManagementPage() {
     description: '',
   });
 
-  // Get admin email from localStorage when needed
+  // Get admin email from localStorage
   const getAdminEmail = () => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('adminEmail');
@@ -56,14 +56,16 @@ export default function HotelsManagementPage() {
 
   const loadHotels = async () => {
     const adminEmail = getAdminEmail();
+    
     if (!adminEmail) {
+      console.log('No admin email found in localStorage');
       setLoading(false);
       return;
     }
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/hotels?email=${adminEmail}`);
+      const response = await fetch(`/api/admin/hotels?email=${encodeURIComponent(adminEmail)}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -76,6 +78,7 @@ export default function HotelsManagementPage() {
         });
       }
     } catch (error) {
+      console.error('Failed to load hotels:', error);
       toast({
         title: "Error",
         description: "Failed to load hotels",
@@ -117,6 +120,15 @@ export default function HotelsManagementPage() {
 
   const handleSubmit = async () => {
     const adminEmail = getAdminEmail();
+    
+    if (!adminEmail) {
+      toast({
+        title: "Not Logged In",
+        description: "Please login at /admin first",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!formData.name || !formData.price_min) {
       toast({
@@ -164,6 +176,7 @@ export default function HotelsManagementPage() {
         });
       }
     } catch (error) {
+      console.error('Submit error:', error);
       toast({
         title: "Error",
         description: "Something went wrong",
@@ -282,6 +295,37 @@ export default function HotelsManagementPage() {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-mahogany-600" />
+      </div>
+    );
+  }
+
+  // Check if user is logged in
+  const adminEmail = getAdminEmail();
+  if (!adminEmail) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="text-mahogany-800">Login Required</CardTitle>
+            <CardDescription>
+              You need to login as admin to manage hotels
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Please login at the admin page first. If you just logged in, try running this in the browser console:
+            </p>
+            <code className="block p-3 bg-gray-100 rounded text-xs">
+              localStorage.setItem('adminEmail', 'your@email.com')
+            </code>
+            <Button 
+              onClick={() => window.location.href = '/admin'}
+              className="w-full bg-mahogany-600 hover:bg-mahogany-700"
+            >
+              Go to Admin Login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -461,7 +505,7 @@ export default function HotelsManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle>Hotels ({hotels.length})</CardTitle>
-            <CardDescription>Drag to reorder, or use up/down arrows</CardDescription>
+            <CardDescription>Manage your accommodation options</CardDescription>
           </CardHeader>
           <CardContent>
             {hotels.length === 0 ? (
@@ -469,7 +513,7 @@ export default function HotelsManagementPage() {
                 <Hotel className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No hotels added yet</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Add your first accommodation option
+                  Click "Add Hotel" above to add your first accommodation option
                 </p>
               </div>
             ) : (
